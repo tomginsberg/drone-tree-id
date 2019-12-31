@@ -9,6 +9,7 @@ import itertools
 import shapefile
 from operator import itemgetter
 import cv2
+from dataset_info import load_dataset_info
 
 '''
 Convert Shapefile dataset to COCO format.
@@ -30,6 +31,7 @@ def get_dataset_dicts(path):
     dataset_name = os.path.basename(path)
     with shapefile.Reader(os.path.join(path, "Segments/"+ dataset_name + "_dom-poly")) as shp:
         shape_recs = shp.shapeRecords()
+        bbox = shp.bbox
     dataset_dicts = []
     record = {}
     
@@ -41,34 +43,28 @@ def get_dataset_dicts(path):
     record["height"] = height
     record["width"] = width
 
-    # Normalize point values (remove offset) to be relative to (0,0).
-    # bboxes = [x.shape.bbox for x in shape_recs]
-    # minx = min(min(bboxes, key=itemgetter(0))[0], min(bboxes, key=itemgetter(2))[2])
-    # miny = min(min(bboxes, key=itemgetter(1))[1], min(bboxes, key=itemgetter(3))[3])
-
     # Obtain global shift from GIS software
-    # TODO: create lookup for each dataset to obtain these values
-    minx = 568800
-    miny = 5970600
-    # Hard code ortho height and width for now.
-    # The ortho and shapefile coordinates are scaled differently to resolution, need to figure this out.
-    scaley = height/887.0
-    scalex = width/737.5
-      
+    minx = bbox[0]
+    miny = bbox[1]
+    # Scale is ratio of image pixel width/height to geometric width/height in raster
+    orthox, orthoy, offsetx, offsety = load_dataset_info(dataset_name)
+    scaley = height/orthox
+    scalex = width/orthoy
+
     objs = []
     classes = []
     for shape_rec in shape_recs:
         rec = shape_rec.record
         shp = shape_rec.shape
         if shp.shapeTypeName is 'POLYGON':
-            poly = [((x-minx)*scalex,(y-miny)*scaley) for (x,y) in shp.points]
+            poly = [((x-minx+offsetx)*scalex,(y-miny+offsety)*scaley) for (x,y) in shp.points]
             poly = list(itertools.chain.from_iterable(poly))
 
             if rec.segClass not in classes:
                 classes.append(rec.segClass)
 
             obj = {
-                "bbox": [(shp.bbox[0]-minx)*scalex, (shp.bbox[1]-miny)*scaley, (shp.bbox[2]-minx)*scalex, (shp.bbox[3]-miny)*scaley],
+                "bbox": [(shp.bbox[0]-minx+offsetx)*scalex, (shp.bbox[1]-miny+offsety)*scaley, (shp.bbox[2]-minx+offsetx)*scalex, (shp.bbox[3]-miny+offsety)*scaley],
                 "bbox_mode": BoxMode.XYXY_ABS,
                 "segmentation": [poly],
                 "category_id": rec.segClass, # classification enabled, we can force each segment to a single tree class if needed
