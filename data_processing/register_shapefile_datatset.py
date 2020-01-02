@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 
-import os
+import os.path as path
 import argparse
-import numpy as np
-import json
 from detectron2.structures import BoxMode
 import itertools
-import shapefile
-from operator import itemgetter
 import cv2
-from dataset_info import load_dataset_info
+import shapefile
+import gdal
 
 '''
 Convert Shapefile dataset to COCO format.
 See https://detectron2.readthedocs.io/tutorials/datasets.html for using custom dataset with detectron2.
 
-path:
+dataset_path:
     str: root directory of dataset containing image (*ortho-resample.tif) and corresponding shapefile (in Segments directory)
     example: //Google Drive/UBC_EngCapstone/sample_data/CPT2a-n, here the dataset is CPT2a-n
     
@@ -23,19 +20,30 @@ TODO: Extend to multiple images and shapefiles in dataset, or clip single ortho 
 
 Returns:
     classes:
-        list, str: list of segment classes of dataset
+        list, str: list of segment classes
     dataset_dicts:
         dict: COCO format dict of dataset annotations/segments
 '''
-def get_dataset_dicts(path):
-    dataset_name = os.path.basename(path)
-    with shapefile.Reader(os.path.join(path, "Segments/"+ dataset_name + "_dom-poly")) as shp:
-        shape_recs = shp.shapeRecords()
-        bbox = shp.bbox
+def get_dataset_dicts(dataset_path):
+    dataset_name = path.basename(dataset_path)
     dataset_dicts = []
     record = {}
-    
-    filename = os.path.join(path, dataset_name + "_ortho-resample.tif")
+
+    # Ortho geometric info
+    ds = gdal.Open(path.join(dataset_path, dataset_name + '_ortho-resample.tif'), gdal.GA_ReadOnly)
+    # upper left (x,y), resolution, skew
+    ulx, xres, _, uly, _, yres  = ds.GetGeoTransform()
+    # Size of Ortho in geometric scale
+    orthox = xres*ds.RasterXSize
+    orthoy = yres*ds.RasterYSize
+
+    # Shapefile geometric info
+    with shapefile.Reader(path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly")) as shp:
+        shape_recs = shp.shapeRecords()
+        # lower left (x,y), upper right (x,y)
+        bbox = shp.bbox
+
+    filename = path.join(dataset_path, dataset_name + "_ortho-resample.tif")
     height, width = cv2.imread(filename).shape[:2]
     
     record["file_name"] = filename
@@ -43,13 +51,17 @@ def get_dataset_dicts(path):
     record["height"] = height
     record["width"] = width
 
-    # Obtain global shift from GIS software
+    ## COCO wants annotation points absolute from top left corner scaled to image pixels, see bbox_mode https://detectron2.readthedocs.io/modules/structures.html#detectron2.structures.BoxMode.
+    # Need to offset data from [(0,0) -> abs(width, height)]
+    # Global offsets
     minx = bbox[0]
-    miny = bbox[1]
+    maxy = bbox[3]
+    # Offset of Shapefile from top left corner of Ortho [0, width/height] in geometric scale
+    offsetx = minx-ulx
+    offsety = maxy-uly
     # Scale is ratio of image pixel width/height to geometric width/height in raster
-    orthox, orthoy, offsetx, offsety = load_dataset_info(dataset_name)
-    scaley = height/orthox
-    scalex = width/orthoy
+    scalex = width/orthox
+    scaley = height/orthoy
 
     objs = []
     classes = []
@@ -57,14 +69,15 @@ def get_dataset_dicts(path):
         rec = shape_rec.record
         shp = shape_rec.shape
         if shp.shapeTypeName is 'POLYGON':
-            poly = [((x-minx+offsetx)*scalex,(y-miny+offsety)*scaley) for (x,y) in shp.points]
+            poly = [((x-minx+offsetx)*scalex,(y-maxy+offsety)*scaley) for (x,y) in shp.points]
             poly = list(itertools.chain.from_iterable(poly))
 
             if rec.segClass not in classes:
                 classes.append(rec.segClass)
 
             obj = {
-                "bbox": [(shp.bbox[0]-minx+offsetx)*scalex, (shp.bbox[1]-miny+offsety)*scaley, (shp.bbox[2]-minx+offsetx)*scalex, (shp.bbox[3]-miny+offsety)*scaley],
+                # scaley < 0, offsety < 0
+                "bbox": [(shp.bbox[0]-minx+offsetx)*scalex, (shp.bbox[1]-maxy+offsety)*scaley, (shp.bbox[2]-minx+offsetx)*scalex, (shp.bbox[3]-maxy+offsety)*scaley],
                 "bbox_mode": BoxMode.XYXY_ABS,
                 "segmentation": [poly],
                 "category_id": rec.segClass, # classification enabled, we can force each segment to a single tree class if needed
@@ -78,11 +91,11 @@ def get_dataset_dicts(path):
 def main():
     from detectron2.data import DatasetCatalog, MetadataCatalog
     parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
-    parser.add_argument('path', type=str, help='Path to root directory for all datasets.')
+    parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
     args = parser.parse_args()
-    datasets = [d for d in os.path.listdir(args.path) if isdir(join(args.path, d))]
+    datasets = [d for d in path.listdir(args.dataset_path) if isdir(join(args.dataset_path, d))]
     for dataset in datasets:
-        classes, dataset_dicts = get_dataset_dicts(os.path.join(args.path, dataset))
+        classes, dataset_dicts = get_dataset_dicts(path.join(args.dataset_path, dataset))
         DatasetCatalog.register(dataset, lambda : dataset_dicts)
         MetadataCatalog.get(dataset).set(thing_classes=classes)
 
