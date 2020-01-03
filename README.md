@@ -15,7 +15,6 @@ ssh [your_ETH_alias]@login.leonhard.ethz.ch
 ### load python, c++ module
 ```
 module load gcc/6.3.0 python_gpu/3.7.4 gdal/2.3.2
-pt
 ```
 
 ### clone repo
