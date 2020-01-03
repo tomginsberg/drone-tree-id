@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os.path as path
+import os
 import argparse
 from detectron2.structures import BoxMode
 import itertools
@@ -24,13 +24,13 @@ Returns:
     dataset_dicts:
         dict: COCO format dict of dataset annotations/segments
 '''
-def get_dataset_dicts(dataset_path):
-    dataset_name = path.basename(dataset_path)
+def shapefile_to_coco_dict(dataset_path):
+    dataset_name = os.path.basename(dataset_path)
     dataset_dicts = []
     record = {}
 
     # Ortho geometric info
-    ds = gdal.Open(path.join(dataset_path, dataset_name + '_ortho-resample.tif'), gdal.GA_ReadOnly)
+    ds = gdal.Open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), gdal.GA_ReadOnly)
     # upper left (x,y), resolution, skew
     ulx, xres, _, uly, _, yres  = ds.GetGeoTransform()
     # Size of Ortho in geometric scale
@@ -38,12 +38,12 @@ def get_dataset_dicts(dataset_path):
     orthoy = yres*ds.RasterYSize
 
     # Shapefile geometric info
-    with shapefile.Reader(path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly")) as shp:
+    with shapefile.Reader(os.path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly")) as shp:
         shape_recs = shp.shapeRecords()
         # lower left (x,y), upper right (x,y)
         bbox = shp.bbox
 
-    filename = path.join(dataset_path, dataset_name + "_ortho-resample.tif")
+    filename = os.path.join(dataset_path, dataset_name + "_ortho-resample.tif")
     height, width = cv2.imread(filename).shape[:2]
     
     record["file_name"] = filename
@@ -64,7 +64,7 @@ def get_dataset_dicts(dataset_path):
     scaley = height/orthoy
 
     objs = []
-    classes = []
+    classes = ['tree']
     for shape_rec in shape_recs:
         rec = shape_rec.record
         shp = shape_rec.shape
@@ -72,15 +72,16 @@ def get_dataset_dicts(dataset_path):
             poly = [((x-minx+offsetx)*scalex,(y-maxy+offsety)*scaley) for (x,y) in shp.points]
             poly = list(itertools.chain.from_iterable(poly))
 
-            if rec.segClass not in classes:
-                classes.append(rec.segClass)
+            # if rec.segClass not in classes:
+            #     classes.append(rec.segClass)
 
             obj = {
                 # scaley < 0, offsety < 0
                 "bbox": [(shp.bbox[0]-minx+offsetx)*scalex, (shp.bbox[1]-maxy+offsety)*scaley, (shp.bbox[2]-minx+offsetx)*scalex, (shp.bbox[3]-maxy+offsety)*scaley],
                 "bbox_mode": BoxMode.XYXY_ABS,
                 "segmentation": [poly],
-                "category_id": rec.segClass, # classification enabled, we can force each segment to a single tree class if needed
+                "category_id": 0,
+                # "category_id": rec.segClass, # classification enabled, we can force each segment to a single tree class if needed
                 "iscrowd": 0 # iscrowd groups individual objects of the same kind into a single segment. For tree segmentation, we want to isolate trees
             }
             objs.append(obj)
@@ -93,11 +94,12 @@ def main():
     parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
     parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
     args = parser.parse_args()
-    datasets = [d for d in path.listdir(args.dataset_path) if isdir(join(args.dataset_path, d))]
+    datasets = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d)) and os.path.isdir(os.path.join(dataset_path, d + '/Segments'))]
     for dataset in datasets:
-        classes, dataset_dicts = get_dataset_dicts(path.join(args.dataset_path, dataset))
-        DatasetCatalog.register(dataset, lambda : dataset_dicts)
-        MetadataCatalog.get(dataset).set(thing_classes=classes)
+        if dataset not in DatasetCatalog.list():
+            classes, dataset_dicts = shapefile_to_coco_dict(os.path.join(dataset_path, dataset))
+            DatasetCatalog.register(dataset, lambda : dataset_dicts)
+            MetadataCatalog.get(dataset).set(thing_classes=classes)
 
 if __name__ == "__main__":
     main()
