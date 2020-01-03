@@ -9,5 +9,5 @@ img = cv2.imread('/Users/Ro/Google Drive/UBC_EngCapstone/sample_data/CPT2a-n/CPT
 visualizer = Visualizer(img[:, :, :], metadata=MetadataCatalog.get("CPT2a-n"), scale=1)
 vis = visualizer.draw_dataset_dict(dataset_dicts[0])
 cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-cv2.imshow('image',vis.get_image()[:, :, :])
+cv2.imshow('image', vis.get_image()[:, :, :])
 cv2.waitKey(0)
