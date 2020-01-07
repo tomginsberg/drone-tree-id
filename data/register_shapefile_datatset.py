@@ -62,6 +62,8 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict[str,
     # Scale is ratio of image pixel width/height to geometric width/height in raster
     scalex = width / orthox
     scaley = height / orthoy
+    rescale_x = lambda x: (x - minx + offsetx) * scalex
+    rescale_y = lambda y: (y - miny + offsety) * scaley
 
     objs = []
     classes = ['tree']
@@ -69,16 +71,15 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict[str,
         rec = shape_rec.record
         shp = shape_rec.shape
         if shp.shapeTypeName is 'POLYGON':
-            poly = [((x - minx + offsetx) * scalex, (y - maxy + offsety) * scaley) for (x, y) in shp.points]
+            poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
             poly = list(itertools.chain.from_iterable(poly))
 
             # if rec.segClass not in classes:
             #     classes.append(rec.segClass)
-
             obj = {
                 # scaley < 0, offsety < 0
-                "bbox": [(shp.bbox[0] - minx + offsetx) * scalex, (shp.bbox[1] - maxy + offsety) * scaley,
-                         (shp.bbox[2] - minx + offsetx) * scalex, (shp.bbox[3] - maxy + offsety) * scaley],
+                "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[1]),
+                         rescale_x(shp.bbox[2]), rescale_y(shp.bbox[3])],
                 "bbox_mode": BoxMode.XYXY_ABS,
                 "segmentation": [poly],
                 "category_id": 0,
