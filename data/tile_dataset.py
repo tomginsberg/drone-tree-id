@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union, List, Tuple, Dict, Any
 from math import floor, ceil
 from detectron2.structures import BoxMode
-import itertoolsat
+import itertools
 
 
 def min_max(arr: np.ndarray[float]) -> Tuple[float, float]:
