@@ -2,14 +2,17 @@
 
 import os
 import argparse
+from typing import List, Union, Dict, Tuple
+
 from detectron2.structures import BoxMode
 import itertools
 import cv2
 import shapefile
 import gdal
+import numpy as np
 
 
-def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict[str, Union[str, int, float]]]]:
+def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     """
     Convert Shapefile dataset to COCO format.
     See https://detectron2.readthedocs.io/tutorials/datasets.html for using custom dataset with detectron2.
@@ -45,6 +48,7 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict[str,
     filename = os.path.join(dataset_path, dataset_name + "_ortho-resample.tif")
     height, width = cv2.imread(filename).shape[:2]
 
+    # don't wanna fuck with the flow, but consider making this an object
     record["file_name"] = filename
     record["image_id"] = 0
     record["height"] = height
@@ -63,33 +67,31 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict[str,
     scalex = width / orthox
     scaley = height / orthoy
     rescale_x = lambda x: (x - minx + offsetx) * scalex
-    rescale_y = lambda y: (y - miny + offsety) * scaley
+    rescale_y = lambda y: (y - maxy + offsety) * scaley
 
     objs = []
     classes = ['tree']
     for shape_rec in shape_recs:
-        rec = shape_rec.record
         shp = shape_rec.shape
         if shp.shapeTypeName is 'POLYGON':
-            poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
-            poly = list(itertools.chain.from_iterable(poly))
+            poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in shp.points])
+            # poly = list(itertools.chain.from_iterable(poly))
 
             # if rec.segClass not in classes:
             #     classes.append(rec.segClass)
-            obj = {
+            objs.append({
                 # scaley < 0, offsety < 0
                 "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[1]),
                          rescale_x(shp.bbox[2]), rescale_y(shp.bbox[3])],
                 "bbox_mode": BoxMode.XYXY_ABS,
-                "segmentation": [poly],
+                "segmentation": poly,
                 "category_id": 0,
                 # "category_id": rec.segClass, # classification enabled, we can force each segment to a
                 # single tree class if needed
                 "iscrowd": 0
                 # iscrowd groups individual objects of the same kind into a single segment. For tree segmentation,
                 # we want to isolate trees
-            }
-            objs.append(obj)
+            })
     record["annotations"] = objs
     dataset_dicts.append(record)
     return classes, dataset_dicts
