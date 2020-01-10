@@ -5,7 +5,7 @@ from detectron2.structures import BoxMode
 import itertools
 
 
-def min_max(arr: np.ndarray[float]) -> Tuple[float, float]:
+def min_max(arr: np.ndarray) -> Tuple[float, float]:
     """
     For some reason this is not a numpy function
     :param arr:
