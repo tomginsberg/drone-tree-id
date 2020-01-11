@@ -12,6 +12,12 @@ Ensure you are connected to the ETH network.
 ssh [your_ETH_alias]@login.leonhard.ethz.ch
 ```
 
+#### clone repo
+```
+cd ~
+git clone https://github.com/roeetal/drone-tree-id.git
+```
+
 ### run setup script
 ```
 chmod +x setup
@@ -22,12 +28,6 @@ Alternatively, you can manually setup your environment by modifying:
 #### load python, c++ module
 ```
 module load gcc/6.3.0 python_gpu/3.7.4
-```
-
-#### clone repo
-```
-cd ~
-git clone https://github.com/roeetal/drone-tree-id.git
 ```
 
 #### install dependencies
