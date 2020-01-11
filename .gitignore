@@ -139,5 +139,5 @@ output/
 Untitled.ipynb
 /datasets/
 .DS_Store
-shapefile.ipynb
+notebooks/shapefile.ipynb
 !/lib/detectron2/
