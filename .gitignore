@@ -140,3 +140,4 @@ Untitled.ipynb
 /datasets/
 .DS_Store
 shapefile.ipynb
+!/lib/detectron2/

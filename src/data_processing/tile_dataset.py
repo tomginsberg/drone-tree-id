@@ -37,32 +37,36 @@ def rect_corners(rect: Union[np.ndarray, List[Tuple[float, float]]]) -> np.ndarr
     return np.array([[x, y], [x + w, y], [x + w, y + w], [x, y + w], [x, y]]).transpose()
 
 
-class TiledPolygons:
-    def __init__(self, shape_record: Dict['str', Any]):
+class TiledDataset:
+    def __init__(self, shape_record: Dict['str', Any], width, height=None, w_overlay=0, h_overlay=None):
         self.annotations = shape_record['annotations']
         self.filename = shape_record['filename']
         self.x_max, self.y_max = shape_record['width'], shape_record['height']
         self.id_0 = shape_record['image_id']
         self.tiled_record: List[Dict] = []
-
-    def tile(self, width, height=None, w_overlay=0, h_overlay=None) -> List[Dict[str, Union[str, int, float]]]:
+        self.width, self.height = width, height
         if height is None:
-            height = width
+            self.height = width
         if h_overlay is None:
-            h_overlay = w_overlay
-        dx, dy = (width - w_overlay), (height - h_overlay)
-        num_tiles = floor(self.x_max / dx) * floor(self.y_max / dy)
+            self.h_overlay = w_overlay
+        self.dx, self.dy = (width - w_overlay), (height - h_overlay)
+        self.num_tiles = floor(self.x_max / self.dx) * floor(self.y_max / self.dy)
 
-        for tile in range(num_tiles):
+    def tile_ortho(self):
+        pass
+
+    def tile_polygons(self) -> List[Dict[str, Union[str, int, float]]]:
+
+        for tile in range(self.num_tiles):
             self.tiled_record.append({'file_name': f'{self.filename}_{tile}',
                                       'image_id': tile + self.id_0,
-                                      'width': width, 'height': height, 'annotations': []})
+                                      'width': self.width, 'height': self.height, 'annotations': []})
 
             for annotation in self.annotations:
                 x_min, y_min, x_max, y_max = annotation['bbox']
-                x_pos, y_pos = floor(x_min / dx), floor(y_min / dy)
-                x_lower_grid_bound, y_lower_grid_bound = dx * x_pos, dy * y_pos
-                if box_in_box(annotation['bbox'], [x_lower_grid_bound, y_lower_grid_bound, width, height]):
+                x_pos, y_pos = floor(x_min / self.dx), floor(y_min / self.dy)
+                x_lower_grid_bound, y_lower_grid_bound = self.dx * x_pos, self.dy * y_pos
+                if box_in_box(annotation['bbox'], [x_lower_grid_bound, y_lower_grid_bound, self.width, self.height]):
                     # id: (x_pos + 1)(y_pos + 1) - 1
                     self.annotations[(x_pos + 1) * (y_pos + 1) - 1]['annotations'].append(
                         create_annotation(
@@ -73,36 +77,39 @@ class TiledPolygons:
                             category_id=annotation['category_id']
                         )
                     )
-                elif box_in_box(annotation['bbox'], [x_lower_grid_bound - width, y_lower_grid_bound, width, height]):
+                elif box_in_box(annotation['bbox'],
+                                [x_lower_grid_bound - self.width, y_lower_grid_bound, self.width, self.height]):
                     # id: (x_pos)(y_pos + 1) - 1
                     self.annotations[x_pos * (y_pos + 1) - 1]['annotations'].append(
                         create_annotation(
                             poly=annotation['segmentation'],
                             bbox=annotation['bbox'],
-                            rescale_corner=(x_lower_grid_bound - width, y_lower_grid_bound),
+                            rescale_corner=(x_lower_grid_bound - self.width, y_lower_grid_bound),
                             is_crowd=annotation['iscrowd'],
                             category_id=annotation['category_id']
                         )
                     )
                 elif box_in_box(annotation['bbox'],
-                                [x_lower_grid_bound - width, y_lower_grid_bound - height, width, height]):
+                                [x_lower_grid_bound - self.width, y_lower_grid_bound - self.height, self.width,
+                                 self.height]):
                     # id: (x_pos)(y_pos) - 1
                     self.annotations[x_pos * y_pos - 1]['annotations'].append(
                         create_annotation(
                             poly=annotation['segmentation'],
                             bbox=annotation['bbox'],
-                            rescale_corner=(x_lower_grid_bound - width, y_lower_grid_bound - height),
+                            rescale_corner=(x_lower_grid_bound - self.width, y_lower_grid_bound - self.height),
                             is_crowd=annotation['iscrowd'],
                             category_id=annotation['category_id']
                         )
                     )
-                elif box_in_box(annotation['bbox'], [x_lower_grid_bound, y_lower_grid_bound - height, width, height]):
+                elif box_in_box(annotation['bbox'],
+                                [x_lower_grid_bound, y_lower_grid_bound - self.height, self.width, self.height]):
                     # id: (x_pos + 1)(y_pos) - 1
                     self.annotations[(x_pos + 1) * y_pos - 1]['annotations'].append(
                         create_annotation(
                             poly=annotation['segmentation'],
                             bbox=annotation['bbox'],
-                            rescale_corner=(x_lower_grid_bound, y_lower_grid_bound - height),
+                            rescale_corner=(x_lower_grid_bound, y_lower_grid_bound - self.height),
                             is_crowd=annotation['iscrowd'],
                             category_id=annotation['category_id']
                         )
@@ -116,7 +123,7 @@ def create_annotation(poly, bbox, rescale_corner, is_crowd, category_id):
         "bbox": [bbox[0] - rescale_corner[0], bbox[1], rescale_corner[1], bbox[2] - rescale_corner[0],
                  bbox[3] - rescale_corner[1]],
         "bbox_mode": BoxMode.XYXY_ABS,
-        "segmentation": [list(itertools.chain.from_iterable(map(lambda x: rescale(x, rescale_corner), poly)))],
+        "segmentation": [list(itertools.chain.from_iterable(map(lambda x: shift(x, rescale_corner), poly)))],
         "category_id": category_id,
         # "category_id": rec.segClass, # classification enabled, we can force each segment to a
         # single tree class if needed
@@ -126,7 +133,7 @@ def create_annotation(poly, bbox, rescale_corner, is_crowd, category_id):
     }
 
 
-def rescale(val, corner):
+def shift(val, corner):
     return val[0] - corner[0], val[1] - corner[1]
 
 
