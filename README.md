@@ -14,7 +14,7 @@ ssh [your_ETH_alias]@login.leonhard.ethz.ch
 
 ### load python, c++ module
 ```
-module load gcc/6.3.0 python_gpu/3.7.4 gdal/2.3.2
+module load gcc/6.3.0 python_gpu/3.7.4
 ```
 
 ### clone repo
@@ -26,7 +26,7 @@ git clone https://github.com/roeetal/drone-tree-id.git
 ### install dependencies
 GDAL current not installing on Leonard.
 ```
-python3 -m pip install --user gdal pyshp opencv-python torch torchvision
+python3 -m pip install --user rasterio pyshp opencv-python torch torchvision
 ```
 
 ### install Detectron2 
