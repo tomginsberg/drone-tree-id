@@ -72,10 +72,11 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     classes = ['tree']
     for shape_rec in shape_recs:
         shp = shape_rec.shape
-        if shp.shapeType == 5: # 5 - polygon
-            poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
-            # poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in shp.points])
-            poly = list(itertools.chain.from_iterable(poly))
+        if shp.shapeType == 5:  # 5 - polygon
+            # poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
+            poly = fix_polygon_tail(shp.points)
+            poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in poly])
+            # poly = list(itertools.chain.from_iterable(poly))
 
             # if rec.segClass not in classes:
             #     classes.append(rec.segClass)
@@ -84,7 +85,7 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
                 "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[1]),
                          rescale_x(shp.bbox[2]), rescale_y(shp.bbox[3])],
                 "bbox_mode": BoxMode.XYXY_ABS,
-                "segmentation": [poly],
+                "segmentation": poly,
                 "category_id": 0,
                 # "category_id": rec.segClass, # classification enabled, we can force each segment to a
                 # single tree class if needed
@@ -102,6 +103,7 @@ def main():
     parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
     parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
     args = parser.parse_args()
+    dataset_path = 'datasets/CPT2a-n'
     datasets = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d)) and os.path.isdir(
         os.path.join(dataset_path, d + '/Segments'))]
     for dataset in datasets:
@@ -109,6 +111,16 @@ def main():
             classes, dataset_dicts = shapefile_to_coco_dict(os.path.join(dataset_path, dataset))
             DatasetCatalog.register(dataset, lambda: dataset_dicts)
             MetadataCatalog.get(dataset).set(thing_classes=classes)
+
+
+def fix_polygon_tail(polygon):
+    first = polygon[0]
+    new_poly = []
+    for i, p in enumerate(polygon):
+        new_poly.append(p)
+        if i > 0 and p == first:
+            break
+    return np.array(new_poly)
 
 
 if __name__ == "__main__":
