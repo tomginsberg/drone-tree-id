@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# load Leonard modules
+module load gcc/6.3.0 python_gpu/3.7.4
+
+# install dependencies
+python3 -m pip install --user -r requirements.txt
+
+# install Detectron2
+cd ~/drone-tree-id
+mkdir -p lib
+git clone https://github.com/facebookresearch/detectron2.git lib/detectron2
+python3 -m pip install --user -e lib/detectron2/.

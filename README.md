@@ -12,24 +12,31 @@ Ensure you are connected to the ETH network.
 ssh [your_ETH_alias]@login.leonhard.ethz.ch
 ```
 
-### load python, c++ module
+### run setup script
+```
+chmod +x setup
+./setup
+```
+
+Alternatively, you can manually setup your environment by modifying:
+#### load python, c++ module
 ```
 module load gcc/6.3.0 python_gpu/3.7.4
 ```
 
-### clone repo
+#### clone repo
 ```
 cd ~
 git clone https://github.com/roeetal/drone-tree-id.git
 ```
 
-### install dependencies
+#### install dependencies
 GDAL current not installing on Leonard.
 ```
 python3 -m pip install --user rasterio pyshp opencv-python torch torchvision
 ```
 
-### install Detectron2 
+#### install Detectron2 
 If running on mac, you will need to specify the c++ compiler when installing dependencies: `MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ pip install ...`
 ```
 cd ~/drone-tree-id
