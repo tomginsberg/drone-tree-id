@@ -8,7 +8,7 @@ from detectron2.structures import BoxMode
 import itertools
 import cv2
 import shapefile
-import gdal
+import rasterio
 import numpy as np
 
 
@@ -31,19 +31,18 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     dataset_dicts = []
     record = {}
 
-    # Ortho geometric info
-    ds = gdal.Open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), gdal.GA_ReadOnly)
-    # upper left (x,y), resolution, skew
-    ulx, xres, _, uly, _, yres = ds.GetGeoTransform()
-    # Size of Ortho in geometric scale
-    orthox = xres * ds.RasterXSize
-    orthoy = yres * ds.RasterYSize
+    # Ortho and Shapefile geospacial transformation info
+    shpf = shapefile.Reader(os.path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly"))
+    shape_recs = shpf.shapeRecords()
+    # lower left (x,y), upper right (x,y)
+    bbox = shpf.bbox
 
-    # Shapefile geometric info
-    with shapefile.Reader(os.path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly")) as shp:
-        shape_recs = shp.shapeRecords()
-        # lower left (x,y), upper right (x,y)
-        bbox = shp.bbox
+    ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), 'r')
+    # upper left (x,y), resolution, skew _
+    ulx, xres, _, uly, _, yres = ds.get_transform()
+    # Size of Ortho in geometric scale
+    orthox = xres * ds.width
+    orthoy = yres * ds.height
 
     filename = os.path.join(dataset_path, dataset_name + "_ortho-resample.tif")
     height, width = cv2.imread(filename).shape[:2]
@@ -73,9 +72,10 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     classes = ['tree']
     for shape_rec in shape_recs:
         shp = shape_rec.shape
-        if shp.shapeTypeName is 'POLYGON':
-            poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in shp.points])
-            # poly = list(itertools.chain.from_iterable(poly))
+        if shp.shapeType == 5: # 5 - polygon
+            poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
+            # poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in shp.points])
+            poly = list(itertools.chain.from_iterable(poly))
 
             # if rec.segClass not in classes:
             #     classes.append(rec.segClass)
@@ -84,7 +84,7 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
                 "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[1]),
                          rescale_x(shp.bbox[2]), rescale_y(shp.bbox[3])],
                 "bbox_mode": BoxMode.XYXY_ABS,
-                "segmentation": poly,
+                "segmentation": [poly],
                 "category_id": 0,
                 # "category_id": rec.segClass, # classification enabled, we can force each segment to a
                 # single tree class if needed
