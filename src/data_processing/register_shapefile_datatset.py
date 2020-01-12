@@ -10,6 +10,7 @@ import cv2
 import shapefile
 import rasterio
 import numpy as np
+from data_processing.tile_dataset import TiledDataset
 
 
 def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
@@ -28,7 +29,6 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
         dict: COCO format dict of dataset annotations/segments
     """
     dataset_name = os.path.basename(dataset_path)
-    dataset_dicts = []
     record = {}
 
     # Ortho and Shapefile geospacial transformation info
@@ -94,7 +94,9 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
                 # we want to isolate trees
             })
     record["annotations"] = objs
-    dataset_dicts.append(record)
+    td = TiledDataset(record, width=600, height=600, w_overlay=300, h_overlay=300)
+
+    dataset_dicts = td.tile_polygons()
     return classes, dataset_dicts
 
 
