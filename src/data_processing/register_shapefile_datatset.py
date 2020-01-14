@@ -3,17 +3,23 @@
 import os
 import argparse
 from typing import List, Union, Dict, Tuple
-
+import json
 from detectron2.structures import BoxMode
 import itertools
 import cv2
+from skimage.io import imread
 import shapefile
-import rasterio
 import numpy as np
 from data_processing.tile_dataset import TiledDataset
+import glob
+from tqdm import tqdm
+import gdal
+
+img_id = 0
 
 
 def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
+    global img_id
     """
     Convert Shapefile dataset to COCO format.
     See https://detectron2.readthedocs.io/tutorials/datasets.html for using custom dataset with detectron2.
@@ -32,24 +38,28 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     record = {}
 
     # Ortho and Shapefile geospacial transformation info
-    shpf = shapefile.Reader(os.path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly"))
+    # shpf = shapefile.Reader(os.path.join(dataset_path, "Segments/" + dataset_name + "_dom-poly"))
+    shpf = shapefile.Reader(os.path.join(dataset_path, "simple/segs_simple"))
+
     shape_recs = shpf.shapeRecords()
     # lower left (x,y), upper right (x,y)
     bbox = shpf.bbox
 
-    ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), 'r')
+    # ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), 'r')
+    print(f'Reading Raster for {dataset_name}')
+    ds = gdal.Open(os.path.join(dataset_path, dataset_name + '_ortho.tif'), gdal.GA_ReadOnly)
+
     # upper left (x,y), resolution, skew _
-    ulx, xres, _, uly, _, yres = ds.get_transform()
+    ulx, xres, _, uly, _, yres = ds.GetGeoTransform()
     # Size of Ortho in geometric scale
-    orthox = xres * ds.width
-    orthoy = yres * ds.height
+    orthox = xres * ds.RasterXSize
+    orthoy = yres * ds.RasterYSize
 
-    filename = os.path.join(dataset_path, dataset_name + "_ortho-resample.tif")
-    height, width = cv2.imread(filename).shape[:2]
+    filename = os.path.join(dataset_path, dataset_name + "_ortho.tif")
+    height, width = imread(filename).shape[:2]
 
-    # don't wanna fuck with the flow, but consider making this an object
     record["file_name"] = filename
-    record["image_id"] = 0
+    record["image_id"] = img_id
     record["height"] = height
     record["width"] = width
 
@@ -70,21 +80,19 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
 
     objs = []
     classes = ['tree']
-    for shape_rec in shape_recs:
+    print(f'Rescaling Segments for {dataset_name}')
+    for shape_rec in tqdm(shape_recs):
         shp = shape_rec.shape
         if shp.shapeType == 5:  # 5 - polygon
-            # poly = [(rescale_x(x), rescale_y(y)) for (x, y) in shp.points]
             poly = fix_polygon_tail(shp.points)
             poly = np.array([[rescale_x(x), rescale_y(y)] for (x, y) in poly])
-            # poly = list(itertools.chain.from_iterable(poly))
 
             # if rec.segClass not in classes:
             #     classes.append(rec.segClass)
             objs.append({
                 # scaley < 0, offsety < 0
-                "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[1]),
-                         rescale_x(shp.bbox[2]), rescale_y(shp.bbox[3])],
-                "bbox_mode": BoxMode.XYXY_ABS,
+                "bbox": [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[3]),
+                         rescale_x(shp.bbox[2]), rescale_y(shp.bbox[1])],
                 "segmentation": poly,
                 "category_id": 0,
                 # "category_id": rec.segClass, # classification enabled, we can force each segment to a
@@ -94,9 +102,13 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
                 # we want to isolate trees
             })
     record["annotations"] = objs
+
     td = TiledDataset(record, width=600, height=600, w_overlay=300, h_overlay=300)
+    td.tile_ortho()
 
     dataset_dicts = td.tile_polygons()
+    img_id += td.num_tiles
+
     return classes, dataset_dicts
 
 
@@ -122,8 +134,12 @@ def fix_polygon_tail(polygon):
         new_poly.append(p)
         if i > 0 and p == first:
             break
-    return np.array(new_poly)
+    return new_poly
 
 
 if __name__ == "__main__":
-    main()
+    datasets = glob.glob('datasets/*')
+    for dataset in datasets:
+        _, dataset_dict = shapefile_to_coco_dict(dataset)
+        with open(f'tiled_{dataset}/segs.json', 'w') as f:
+            f.write(json.dumps(dataset_dict))

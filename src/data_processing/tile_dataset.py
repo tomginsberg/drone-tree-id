@@ -4,6 +4,8 @@ from math import floor, ceil
 from detectron2.structures import BoxMode
 import itertools
 import cv2
+from tqdm import tqdm
+from skimage.io import imread
 
 
 def min_max(arr: np.ndarray) -> Tuple[float, float]:
@@ -41,7 +43,7 @@ def rect_corners(rect: Union[np.ndarray, List[Tuple[float, float]]]) -> np.ndarr
 class TiledDataset:
     def __init__(self, shape_record: Dict['str', Any], width, height=None, w_overlay=0, h_overlay=None):
         self.annotations = shape_record['annotations']
-        self.filename = shape_record['filename']
+        self.filename = shape_record['file_name']
         self.x_max, self.y_max = shape_record['width'], shape_record['height']
         self.id_0 = shape_record['image_id']
         self.tiled_record: List[Dict] = []
@@ -58,21 +60,22 @@ class TiledDataset:
         self.x_tiles = ceil(self.x_max / self.dx)
         self.num_tiles = self.x_tiles * ceil(self.y_max / self.dy)
 
-    def tile_ortho(self, ortho_path: str):
-        file_name, data_set_name = (lambda x: (x[-1][:-4], x[-2]))(ortho_path.split('/'))
+    def tile_ortho(self):
+        file_name, data_set_name = (lambda x: (x[-1][:-4], x[-2]))(self.filename.split('/'))
         output_dir = f'tiled_datasets/{data_set_name}'
-        img = cv2.imread(ortho_path)
+        img = imread(self.filename)
         print('Ortho Read')
         idx = self.id_0
         x_max, y_max = img.shape[:2]
         for x in range(0, x_max, self.dx):
             for y in range(0, y_max, self.dy):
                 x_c = x + self.width if x + self.width <= x_max else x_max
-                y_c = y + self.height if x + self.height <= y_max else y_max
+                y_c = y + self.height if y + self.height <= y_max else y_max
 
                 cv2.imwrite(f'{output_dir}/{file_name}_{idx}.png', img[x:x_c, y:y_c])
                 idx += 1
-                print(f'Tile {idx}/{self.num_tiles} written')
+                if idx % 100 == 0:
+                    print(f'Tile {idx}/{self.num_tiles} written')
 
     def tile_polygons(self) -> List[Dict[str, Union[str, int, float]]]:
         for tile in range(self.num_tiles):
@@ -80,7 +83,8 @@ class TiledDataset:
                                       'image_id': tile + self.id_0,
                                       'width': self.width, 'height': self.height, 'annotations': []})
 
-        for annotation in self.annotations:
+        print(f'Tiling Polygons into {self.num_tiles} Tiles.')
+        for annotation in tqdm(self.annotations):
             x_min, y_min, x_max, y_max = annotation['bbox']
             x_pos, y_pos = (x_min // self.dx), (y_min // self.dy)
 
@@ -107,9 +111,8 @@ class TiledDataset:
 
 def create_annotation(poly, bbox, rescale_corner, is_crowd, category_id):
     return {
-        "bbox": [bbox[0] - rescale_corner[0], bbox[1], rescale_corner[1], bbox[2] - rescale_corner[0],
+        "bbox": [bbox[0] - rescale_corner[0], bbox[1] - rescale_corner[1], bbox[2] - rescale_corner[0],
                  bbox[3] - rescale_corner[1]],
-        "bbox_mode": BoxMode.XYXY_ABS,
         "segmentation": [list(itertools.chain.from_iterable(map(lambda x: shift(x, rescale_corner), poly)))],
         "category_id": category_id,
         # "category_id": rec.segClass, # classification enabled, we can force each segment to a
