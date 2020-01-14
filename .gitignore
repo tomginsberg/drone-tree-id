@@ -137,7 +137,6 @@ output/
 .idea/modules.xml
 .idea/vcs.xml
 Untitled.ipynb
-/datasets/
 .DS_Store
 notebooks/shapefile.ipynb
 !/lib/detectron2/

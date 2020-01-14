@@ -4,16 +4,13 @@ import os
 import argparse
 from typing import List, Union, Dict, Tuple
 import json
-from detectron2.structures import BoxMode
-import itertools
-import cv2
 from skimage.io import imread
 import shapefile
 import numpy as np
 from data_processing.tile_dataset import TiledDataset
 import glob
 from tqdm import tqdm
-import gdal
+import rasterio
 
 img_id = 0
 
@@ -47,13 +44,13 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
 
     # ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), 'r')
     print(f'Reading Raster for {dataset_name}')
-    ds = gdal.Open(os.path.join(dataset_path, dataset_name + '_ortho.tif'), gdal.GA_ReadOnly)
+    ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho.tif'), 'r')
 
     # upper left (x,y), resolution, skew _
-    ulx, xres, _, uly, _, yres = ds.GetGeoTransform()
+    ulx, xres, _, uly, _, yres = ds.get_transform()
     # Size of Ortho in geometric scale
-    orthox = xres * ds.RasterXSize
-    orthoy = yres * ds.RasterYSize
+    orthox = xres * ds.width
+    orthoy = yres * ds.height
 
     filename = os.path.join(dataset_path, dataset_name + "_ortho.tif")
     height, width = imread(filename).shape[:2]
@@ -139,6 +136,7 @@ def fix_polygon_tail(polygon):
 
 if __name__ == "__main__":
     datasets = glob.glob('datasets/*')
+    datasets.sort()
     for dataset in datasets:
         _, dataset_dict = shapefile_to_coco_dict(dataset)
         with open(f'tiled_{dataset}/segs.json', 'w') as f:

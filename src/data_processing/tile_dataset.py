@@ -1,7 +1,6 @@
 import numpy as np
 from typing import Union, List, Tuple, Dict, Any
 from math import floor, ceil
-from detectron2.structures import BoxMode
 import itertools
 import cv2
 from tqdm import tqdm
