@@ -2,4 +2,4 @@
 
 module load gcc/6.3.0 python_gpu/3.7.4
 
-bsub -n 20 -R "rusage[mem=4500,ngpus_excl_p=1]" -R "select[gpu_model0==GeForceGTX1080Ti]" python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml --num-gpus 1
+bsub -o output/leonhard_logs -n 20 -R "rusage[mem=4500,ngpus_excl_p=1]" -R "select[gpu_model0==GeForceGTX1080Ti]" python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml --num-gpus 1
