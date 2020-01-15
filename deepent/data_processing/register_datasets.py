@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
-import os
-import argparse
-from typing import List, Union, Dict, Tuple
-import json
-from detectron2.structures import BoxMode
-import itertools
-import cv2
-from skimage.io import imread
-import shapefile
-import numpy as np
-from data_processing.tile_dataset import TiledDataset
 import glob
-from tqdm import tqdm
+import json
+import os
+from typing import List, Dict, Tuple
+
+import numpy as np
 import rasterio
+import shapefile
+from detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.structures import BoxMode
+from skimage.io import imread
+from tqdm import tqdm
+
+from data_processing.tile_dataset import TiledDataset
 
 img_id = 0
 
@@ -112,12 +112,7 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
     return classes, dataset_dicts
 
 
-def main():
-    from detectron2.data import DatasetCatalog, MetadataCatalog
-    # parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
-    # parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
-    # args = parser.parse_args()
-
+def register_datasets():
     dataset_path = 'FYBRData'
 
     for datasets in [glob.glob(f'{dataset_path}/train/*'), glob.glob(f'{dataset_path}/test/*')]:
@@ -125,12 +120,13 @@ def main():
             with open(f'{dataset}/segs.json', 'r') as f:
                 data = json.load(f)
             for tile in data:
-                tile['bbox_mode'] = BoxMode.XYXY_ABS
+                for annotation in tile['annotations']:
+                    annotation['bbox_mode'] = BoxMode.XYXY_ABS
 
             if dataset not in DatasetCatalog.list():
                 print(f'{os.path.basename(dataset)}_{dataset.split("/")[-2]}')
                 DatasetCatalog.register(f'{os.path.basename(dataset)}_{dataset.split("/")[-2]}', lambda: data)
-                MetadataCatalog.get(dataset).set(thing_classes=['tree'])
+                MetadataCatalog.get(f'{os.path.basename(dataset)}_{dataset.split("/")[-2]}').set(thing_classes=['tree'])
 
 
 def fix_polygon_tail(polygon):
@@ -149,7 +145,3 @@ def tile():
         _, dataset_dict = shapefile_to_coco_dict(dataset)
         with open(f'tiled_{dataset}/segs.json', 'w') as f:
             f.write(json.dumps(dataset_dict))
-
-
-if __name__ == "__main__":
-    main()

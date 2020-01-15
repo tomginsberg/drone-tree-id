@@ -9,6 +9,7 @@ from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_resul
 from detectron2.utils.logger import setup_logger
 
 from deepent.config import add_deepent_config
+from deepent.data_processing.register_datasets import register_datasets
 
 
 class Trainer(DefaultTrainer):
@@ -17,6 +18,7 @@ class Trainer(DefaultTrainer):
         output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
         evaluators = [COCOEvaluator(dataset_name, cfg, True, output_folder)]
         return DatasetEvaluators(evaluators)
+
 
 def setup(args):
     cfg = get_cfg()
@@ -46,7 +48,9 @@ def main(args):
     trainer.resume_or_load(resume=args.resume)
     return trainer.train()
 
+
 if __name__ == "__main__":
+    register_datasets()
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
     main(args)
