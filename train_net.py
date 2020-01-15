@@ -12,12 +12,15 @@ from deepent.config import add_deepent_config
 
 
 class Trainer(DefaultTrainer):
-    pass
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name):
+        output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
+        evaluators = [COCOEvaluator(dataset_name, cfg, True, output_folder)]
+        return DatasetEvaluators(evaluators)
 
 def setup(args):
     cfg = get_cfg()
     add_deepent_config(cfg)
-    print(cfg.OUTPUT_DIR)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
@@ -29,18 +32,17 @@ def setup(args):
 def main(args):
     cfg = setup(args)
 
-    # if args.eval_only:
-    #     model = Trainer.build_model(cfg)
-    #     DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-    #         cfg.MODEL.WEIGHTS, resume=args.resume
-    #     )
-    #     res = Trainer.test(cfg, model)
-    #     if comm.is_main_process():
-    #         verify_results(cfg, res)
-    #     return res
+    if args.eval_only:
+        model = Trainer.build_model(cfg)
+        DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+            cfg.MODEL.WEIGHTS, resume=args.resume
+        )
+        res = Trainer.test(cfg, model)
+        if comm.is_main_process():
+            verify_results(cfg, res)
+        return res
 
     trainer = Trainer(cfg)
-    DetectionCheckpointer(trainer, save_dir="/models").resume_or_load(resume=args.resume)
     trainer.resume_or_load(resume=args.resume)
     return trainer.train()
 

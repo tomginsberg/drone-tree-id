@@ -30,8 +30,8 @@ MODEL:
     NUM_CONV: 4
     POOLER_RESOLUTION: 14
 DATASETS:
-  TRAIN: ("coco_2017_train",)
-  TEST: ("coco_2017_val",)
+  TRAIN: ("Kelowna_train", "CPT2a-n_train", "CPT2b_train", "SALCT1_train", "AMECT9_train")
+  TEST: ("Kelowna_test", "CPT2a-n_test", "CPT2b_test", "SALCT1_test", "AMECT9_test")
 SOLVER:
   IMS_PER_BATCH: 16
   BASE_LR: 0.02
