@@ -5,3 +5,4 @@ rasterio
 pyshp
 torch
 torchvision
+pycocotools
