@@ -13,7 +13,7 @@ import numpy as np
 from data_processing.tile_dataset import TiledDataset
 import glob
 from tqdm import tqdm
-import gdal
+import rasterio
 
 img_id = 0
 
@@ -47,10 +47,10 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
 
     # ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho-resample.tif'), 'r')
     print(f'Reading Raster for {dataset_name}')
-    ds = gdal.Open(os.path.join(dataset_path, dataset_name + '_ortho.tif'), gdal.GA_ReadOnly)
+    ds = rasterio.open(os.path.join(dataset_path, dataset_name + '_ortho.tif'), 'r')
 
     # upper left (x,y), resolution, skew _
-    ulx, xres, _, uly, _, yres = ds.GetGeoTransform()
+    ulx, xres, _, uly, _, yres = ds.get_transform()
     # Size of Ortho in geometric scale
     orthox = xres * ds.RasterXSize
     orthoy = yres * ds.RasterYSize
@@ -114,17 +114,23 @@ def shapefile_to_coco_dict(dataset_path: str) -> Tuple[List[str], List[Dict]]:
 
 def main():
     from detectron2.data import DatasetCatalog, MetadataCatalog
-    parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
-    parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
-    args = parser.parse_args()
-    dataset_path = 'datasets/CPT2a-n'
-    datasets = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d)) and os.path.isdir(
-        os.path.join(dataset_path, d + '/Segments'))]
-    for dataset in datasets:
-        if dataset not in DatasetCatalog.list():
-            classes, dataset_dicts = shapefile_to_coco_dict(os.path.join(dataset_path, dataset))
-            DatasetCatalog.register(dataset, lambda: dataset_dicts)
-            MetadataCatalog.get(dataset).set(thing_classes=classes)
+    # parser = argparse.ArgumentParser(description='Register Custom Shapefile dataset for Detectron2.')
+    # parser.add_argument('dataset_path', type=str, help='Path to root directory for all datasets.')
+    # args = parser.parse_args()
+
+    dataset_path = 'FYBRData'
+
+    for datasets in [glob.glob(f'{dataset_path}/train/*'), glob.glob(f'{dataset_path}/test/*')]:
+        for dataset in datasets:
+            with open(f'{dataset}/segs.json', 'r') as f:
+                data = json.load(f)
+            for tile in data:
+                tile['bbox_mode'] = BoxMode.XYXY_ABS
+
+            if dataset not in DatasetCatalog.list():
+                print(f'{os.path.basename(dataset)}_{dataset.split("/")[-2]}')
+                DatasetCatalog.register(f'{os.path.basename(dataset)}_{dataset.split("/")[-2]}', lambda: data)
+                MetadataCatalog.get(dataset).set(thing_classes=['tree'])
 
 
 def fix_polygon_tail(polygon):
@@ -137,9 +143,13 @@ def fix_polygon_tail(polygon):
     return new_poly
 
 
-if __name__ == "__main__":
+def tile():
     datasets = glob.glob('datasets/*')
     for dataset in datasets:
         _, dataset_dict = shapefile_to_coco_dict(dataset)
         with open(f'tiled_{dataset}/segs.json', 'w') as f:
             f.write(json.dumps(dataset_dict))
+
+
+if __name__ == "__main__":
+    main()
