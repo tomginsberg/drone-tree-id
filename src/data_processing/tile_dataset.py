@@ -5,6 +5,9 @@ import itertools
 import cv2
 from tqdm import tqdm
 from skimage.io import imread
+import glob
+import json
+from shutil import copyfile
 
 
 def min_max(arr: np.ndarray) -> Tuple[float, float]:
@@ -144,3 +147,46 @@ def if_non_zero(x):
     if x == 0:
         return 0
     return 1
+
+
+def partition_tiles(train_ratio=.8):
+    datasets = glob.glob('tiled_datasets/*')
+    print(datasets)
+    datasets.sort()
+    for dataset in datasets:
+        dataset_name = dataset.split('/')[-1]
+        print(f'Partioning {dataset_name}')
+        with open(f'{dataset}/segs.json', 'r') as f:
+            segs = json.load(f)
+
+        train, test = [], []
+        train_batch_size = floor(100 * train_ratio)
+        id_0 = int(sorted(glob.glob(f'{dataset}/*.png'))[0].split('/')[-1].split('.')[-2].split('_')[-1])
+
+        for i, seg in tqdm(enumerate(segs)):
+            image_name = seg['file_name'].split('/')[-1]
+            img_num = int(image_name.split('_')[-1][:-4])
+            image_name = '_'.join(image_name.split('_')[:-1]) + f'_{id_0 + img_num}.png'
+            assert id_0 + img_num == seg['image_id']
+            if i % 100 <= train_batch_size:
+                # Training data
+                new_name = f'FYBRData/train/{dataset_name}/{image_name}'
+                copyfile(f'tiled_datasets/{dataset_name}/{image_name}', new_name)
+                seg['file_name'] = new_name
+                train.append(seg)
+            else:
+                # Test Data
+                new_name = f'FYBRData/test/{dataset_name}/{image_name}'
+                copyfile(f'tiled_datasets/{dataset_name}/{image_name}', new_name)
+                seg['file_name'] = new_name
+                test.append(seg)
+
+        with open(f'FYBRData/train/{dataset_name}/segs.json', 'w') as f:
+            f.write(json.dumps(train))
+
+        with open(f'FYBRData/test/{dataset_name}/segs.json', 'w') as f:
+            f.write(json.dumps(test))
+
+
+if __name__ == '__main__':
+    partition_tiles()
