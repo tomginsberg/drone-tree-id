@@ -23,7 +23,7 @@ class fuse_FPN(Backbone):
     """
 
     def __init__(
-        self, bottom_up, depth_enc, in_features, out_channels, norm="", top_block=None, fuse_type="sum"
+        self, bottom_up, in_features, out_channels, norm="", top_block=None, fuse_type="sum"
     ):
         """
         Args:
@@ -124,8 +124,7 @@ class fuse_FPN(Backbone):
         """
         # Reverse feature maps into top-down order (from low to high resolution)
         bottom_up_features = self.bottom_up(x)
-        depth_features = self.depth_enc(x)
-        x = [bottom_up_features[f] + depth_features[f] for f in self.in_features[::-1]]
+        x = [bottom_up_features[f]  for f in self.in_features[::-1]]
         results = []
         prev_features = self.lateral_convs[0](x[0])
         results.append(self.output_convs[0](prev_features))
@@ -231,13 +230,12 @@ def build_deepent_fpn_backbone(cfg, input_shape: ShapeSpec):
     Returns:
         backbone (Backbone): backbone module, must be a subclass of :class:`Backbone`.
     """
-    bottom_up = build_resnet_backbone(cfg, input_shape)
     depth_enc = build_depth_encoder(cfg, input_shape)
+    bottom_up = build_deepent_resnet_backbone(cfg, input_shape, depth_enc)
     in_features = cfg.MODEL.FPN.IN_FEATURES
     out_channels = cfg.MODEL.FPN.OUT_CHANNELS
     backbone = fuse_FPN(
         bottom_up=bottom_up,
-        depth_enc=depth_enc,
         in_features=in_features,
         out_channels=out_channels,
         norm=cfg.MODEL.FPN.NORM,
