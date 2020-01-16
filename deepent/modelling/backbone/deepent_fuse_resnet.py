@@ -1,15 +1,12 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 import numpy as np
-import torch
 from torch import nn
 
 from detectron2.layers import (
     FrozenBatchNorm2d,
     ShapeSpec,
 )
-
-
 from detectron2.modeling.backbone.backbone import Backbone
 from detectron2.modeling.backbone.build import BACKBONE_REGISTRY
 from detectron2.modeling.backbone.resnet import (
@@ -18,14 +15,13 @@ from detectron2.modeling.backbone.resnet import (
     DeformBottleneckBlock,
     make_stage,
     BasicStem,
-) 
-
-from .deepent_depth_encoder import deepent_depth_encoder 
+)
 
 __all__ = [
     "DeepEntFuseResNet",
-    "build_deepent_fuse_resnet_backbone",
+    'build_deepent_fuse_resnet_backbone',
 ]
+
 
 class DeepEntFuseResNet(Backbone):
     def __init__(self, stem, stages, depth_enc, num_classes=None, out_features=None):
@@ -39,7 +35,7 @@ class DeepEntFuseResNet(Backbone):
                 be returned in forward. Can be anything in "stem", "linear", or "res2" ...
                 If None, will return the output of the last layer.
         """
-        super(ResNet, self).__init__()
+        super().__init__()
         self.stem = stem
         self.num_classes = num_classes
 
@@ -127,18 +123,18 @@ def build_deepent_fuse_resnet_backbone(cfg, input_shape, depth_enc):
         stem = FrozenBatchNorm2d.convert_frozen_batchnorm(stem)
 
     # fmt: off
-    out_features        = cfg.MODEL.RESNETS.OUT_FEATURES
-    depth               = cfg.MODEL.RESNETS.DEPTH
-    num_groups          = cfg.MODEL.RESNETS.NUM_GROUPS
-    width_per_group     = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+    out_features = cfg.MODEL.RESNETS.OUT_FEATURES
+    depth = cfg.MODEL.RESNETS.DEPTH
+    num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
+    width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
     bottleneck_channels = num_groups * width_per_group
-    in_channels         = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
-    out_channels        = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
-    stride_in_1x1       = cfg.MODEL.RESNETS.STRIDE_IN_1X1
-    res5_dilation       = cfg.MODEL.RESNETS.RES5_DILATION
+    in_channels = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
+    out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
+    stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
+    res5_dilation = cfg.MODEL.RESNETS.RES5_DILATION
     deform_on_per_stage = cfg.MODEL.RESNETS.DEFORM_ON_PER_STAGE
-    deform_modulated    = cfg.MODEL.RESNETS.DEFORM_MODULATED
-    deform_num_groups   = cfg.MODEL.RESNETS.DEFORM_NUM_GROUPS
+    deform_modulated = cfg.MODEL.RESNETS.DEFORM_MODULATED
+    deform_num_groups = cfg.MODEL.RESNETS.DEFORM_NUM_GROUPS
     # fmt: on
     assert res5_dilation in {1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
 
