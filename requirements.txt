@@ -3,6 +3,4 @@ scikit-image
 opencv-python
 rasterio
 pyshp
-torch
-torchvision
 pycocotools
