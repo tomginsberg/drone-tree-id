@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import math
 import torch
 import fvcore.nn.weight_init as weight_init
@@ -23,7 +24,7 @@ def make_layers_from_size(channels):
 	return nn.Sequential(*layers)
 
 #@TODO: fix this implementation, fix dimensionality 
-class depth_encoder(Backbone):
+class depth_encoder(nn.Module):
     def __init__(feature_map_shapes):
         stage_channels = [3,64,128,256,512,512]
         self.CBR1_DEPTH_ENC = make_layers_from_size(((stage_channels[0], stage_channels[1]), (stage_channels[1], stage_channels[1])))
@@ -69,7 +70,3 @@ class depth_encoder(Backbone):
         x_5 = self.CBR5_DEPTH_ENC(x)
         outputs["dep5"] = x_5
         return outputs
-
-def build_depth_encoder(cfg, feature_map_shapes):
-    model = depth_encoder(feature_map_shapes)
-    return model
