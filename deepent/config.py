@@ -1,5 +1,6 @@
 from detectron2.config import CfgNode as CN
 
+
 def add_deepent_config(cfg):
     """
     Add custom config.
@@ -7,3 +8,4 @@ def add_deepent_config(cfg):
     _C = cfg
 
     _C.MODEL.CUSTOM = CN()
+    _C.MODEL.DEVICE = 'cpu'

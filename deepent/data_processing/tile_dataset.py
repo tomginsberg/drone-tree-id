@@ -1,13 +1,14 @@
-import numpy as np
-from typing import Union, List, Tuple, Dict, Any
-from math import floor, ceil
-import itertools
-import cv2
-from tqdm import tqdm
-from skimage.io import imread
 import glob
+import itertools
 import json
+from math import floor, ceil
 from shutil import copyfile
+from typing import Union, List, Tuple, Dict, Any
+
+import cv2
+import numpy as np
+from skimage.io import imread
+from tqdm import tqdm
 
 
 def min_max(arr: np.ndarray) -> Tuple[float, float]:
@@ -186,6 +187,16 @@ def partition_tiles(train_ratio=.8):
 
         with open(f'FYBRData/test/{dataset_name}/segs.json', 'w') as f:
             f.write(json.dumps(test))
+
+
+def fix_polygon_tail(polygon):
+    first = polygon[0]
+    new_poly = []
+    for i, p in enumerate(polygon):
+        new_poly.append(p)
+        if i > 0 and p == first:
+            break
+    return new_poly
 
 
 if __name__ == '__main__':
