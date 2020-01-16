@@ -126,7 +126,7 @@ class DataTiler:
                             )
         return annotations
 
-    def tile_dataset(self, tile_filtering_function=None, train_to_test: int = 100):
+    def tile_dataset(self, tile_filtering_function=None, train_to_test: int = 80):
         """
 
         :param tile_filtering_function:
@@ -288,6 +288,6 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    dt = DataTiler('/clusters/scratch/tginsberg/datasets', '/clusters/scratch/tginsberg/tiled-data')
+    dt = DataTiler('datasets', 'tiled-data', cleanup_on_init=True)
     dt.tile_dataset()
     # dt.cleanup()
