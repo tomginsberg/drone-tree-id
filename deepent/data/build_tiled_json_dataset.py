@@ -219,7 +219,7 @@ class DataTiler:
         shutil.rmtree(self.output_dir)
 
 
-def fix_polygon_tail(polygon: List[List[float, float]]) -> List[List[float, float]]:
+def fix_polygon_tail(polygon: List[List[float]]) -> List[List[float]]:
     """
     :param polygon:
     :return:
@@ -257,7 +257,7 @@ def box_in_box(contained: List[float], container: List[float]) -> bool:
     return False
 
 
-def shift(val: List[float, float], corner: Tuple[float, float]) -> Tuple[float, float]:
+def shift(val: List[float], corner: Tuple[float, float]) -> Tuple[float, float]:
     """
 
     :param val:
@@ -267,7 +267,7 @@ def shift(val: List[float, float], corner: Tuple[float, float]) -> Tuple[float, 
     return val[0] - corner[0], val[1] - corner[1]
 
 
-def create_annotation(poly: List[List[float, float]], bbox: List[float], rescale_corner: Tuple[float, float],
+def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner: Tuple[float, float],
                       is_crowd: int, category_id: int) -> Dict[str]:
     """
 
@@ -288,6 +288,6 @@ def create_annotation(poly: List[List[float, float]], bbox: List[float], rescale
 
 
 if __name__ == '__main__':
-    dt = DataTiler()
+    dt = DataTiler('/clusters/scratch/tginsberg/datasets', '/clusters/scratch/tginsberg/tiled-data')
     dt.tile_dataset()
     # dt.cleanup()
