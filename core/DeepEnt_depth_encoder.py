@@ -16,47 +16,31 @@ from detectron2.modeling.backbone.resnet import build_resnet_backbone
 
 from DeepEnt_depth_encoder import *
 
-def VGG16_initializator():
-    layer_names =["conv1_1","conv1_2","conv2_1","conv2_2","conv3_1","conv3_2","conv3_3","conv4_1","conv4_2","conv4_3","conv5_1","conv5_2","conv5_3"]
-    layers = list(torchvision.models.vgg16(pretrained=True).features.children())
-    layers = [x for x in layers if isinstance(x, nn.Conv2d)]
-    layer_dic = dict(zip(layer_names,layers))
-    return layer_dic
-
-def make_layers_from_names(names,model_dic,bn_dim,existing_layer=None):
-    layers = []
-    if existing_layer is not None:
-    	layers = [existing_layer,nn.BatchNorm2d(bn_dim,momentum = 0.1),nn.ReLU(inplace=True)]
-    for name in names:
-        layers += [deepcopy(model_dic[name]), nn.BatchNorm2d(bn_dim,momentum = 0.1), nn.ReLU(inplace=True)]
-
-    return nn.Sequential(*layers)
+def make_layers_from_size(channels):
+	layers = []
+	for size in channels:
+		layers += [nn.Conv2d(size[0], size[1], kernel_size=3, padding=1), nn.BatchNorm2d(size[1],momentum = 0.1), nn.ReLU(inplace=True)]
+	return nn.Sequential(*layers)
 
 #@TODO: fix this implementation, fix dimensionality 
 class depth_encoder(Backbone):
     def __init__(feature_map_shapes):
-        feats_depth = list(torchvision.models.vgg16(pretrained=True).features.children())
-        avg = torch.mean(feats_depth[0].weight.data, dim=1)
-        avg = avg.unsqueeze(1)
-
-        conv11d = nn.Conv2d(1, feature_map_sizes[0], kernel_size=3,padding=1)
-        conv11d.weight.data = avg
-        model_dic = VGG16_initializator()
-        self.CBR1_DEPTH_ENC = make_layers_from_names(["conv1_2"], model_dic, feature_map_sizes[0], conv11d)
+        stage_channels = [3,64,128,256,512,512]
+        self.CBR1_DEPTH_ENC = make_layers_from_size(((stage_channels[0], stage_channels[1]), (stage_channels[1], stage_channels[1])))
         self.pool1_d = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
 
-        self.CBR2_DEPTH_ENC = make_layers_from_names(["conv2_1","conv2_2"], model_dic)
+        self.CBR2_DEPTH_ENC = make_layers_from_size(((stage_channels[1], stage_channels[2]), (stage_channels[2], stage_channels[2])))
         self.pool2_d = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
 
-        self.CBR3_DEPTH_ENC = make_layers_from_names(["conv3_1","conv3_2","conv3_3"], model_dic)
+        self.CBR3_DEPTH_ENC = make_layers_from_size(((stage_channels[2], stage_channels[3]), (stage_channels[3], stage_channels[3]),(stage_channels[3], stage_channels[3])))
         self.pool3_d = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
         self.dropout3_d = nn.Dropout(p=0.4)
 
-        self.CBR4_DEPTH_ENC = make_layers_from_names(["conv4_1","conv4_2","conv4_3"], model_dic)
+        self.CBR4_DEPTH_ENC = make_layers_from_size(((stage_channels[3], stage_channels[4]), (stage_channels[4], stage_channels[4]),(stage_channels[4], stage_channels[4])))
         self.pool4_d = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
         self.dropout4_d = nn.Dropout(p=0.4)
 
-        self.CBR5_DEPTH_ENC = make_layers_from_names(["conv5_1","conv5_2","conv5_3"], model_dic, feature_map_sizes[4])
+        self.CBR5_DEPTH_ENC = make_layers_from_size(((stage_channels[4], stage_channels[5]), (stage_channels[5], stage_channels[5]),(stage_channels[5], stage_channels[5])))
 
     def fwd(x):
         outputs = {}
