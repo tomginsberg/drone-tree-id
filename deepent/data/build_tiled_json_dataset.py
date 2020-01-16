@@ -4,7 +4,7 @@ import os
 import shutil
 from glob import glob
 from math import ceil
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 from typing import Tuple
 
 import cv2
@@ -42,7 +42,7 @@ class DataTiler:
         if cleanup_on_init:
             self.cleanup()
 
-    def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray) -> List[List[Dict]]:
+    def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray) -> List[List[Dict[str, any]]]:
         """
 
         :param dataset_directory:
@@ -268,7 +268,7 @@ def shift(val: List[float], corner: Tuple[float, float]) -> Tuple[float, float]:
 
 
 def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner: Tuple[float, float],
-                      is_crowd: int, category_id: int) -> Dict[str]:
+                      is_crowd: int, category_id: int) -> Dict[str, Any]:
     """
 
     :param poly:
