@@ -134,7 +134,7 @@ class DataTiler:
         :raises FileNotFoundError: if a single file matching *ortho.tif cannot be found in the dataset path
         """
         self.build_output_dir_structure()
-        for dataset_directory, dataset_name in zip(self.dataset_input_paths[1:2], self.dataset_names[1:2]):
+        for dataset_directory, dataset_name in zip(self.dataset_input_paths, self.dataset_names):
             ortho_name = glob(os.path.join(dataset_directory, '*ortho.tif'))
             if len(ortho_name) != 1:
                 raise FileNotFoundError('Either 0 or > 1 files matching *ortho.tif found.')
