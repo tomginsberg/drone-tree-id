@@ -1,47 +1,50 @@
+import sys
+sys.path.append('/home/ubuntu/drone-tree-id/')
+
 import os
 import random
+import json
+import matplotlib.pyplot as plt
+import cv2
 
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor, default_argument_parser, default_setup
 from detectron2.utils.visualizer import Visualizer, ColorMode
 from detectron2.data import MetadataCatalog
 
-from deepent.data_processing import register_datatsets
+from deepent.data.register_datasets import register_datasets
+from deepent.config import add_deepent_config
 
 def visualize(predictor, data, dataset):
     fig, axes = plt.subplots(2,6,figsize=(40,15))
     for ax in axes.ravel():
-        img = cv2.imread(random.sample(data, 1)["file_name"])
+        img = cv2.imread(random.sample(data, 1)[0]["file_name"])
         outputs = predictor(img)
-        visualizer = Visualizer(img, metadata=MetadataCatalog.get(dataset), instance_mode=ColorMode.IMAGE_BW)
-        vis = visualizer.draw_dataset_dict(outputs["instances"].to("cpu"))
+        visualizer = Visualizer(img, metadata=MetadataCatalog.get(dataset+'_train'), instance_mode=ColorMode.IMAGE_BW)
+        vis = visualizer.draw_dataset_dict(outputs["instances"])
         ax.imshow(vis.get_image())
 
-def setup(args):
+def setup(args, model):
     cfg = get_cfg()
     add_deepent_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, args.model)
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold
+    cfg.MODEL.WEIGHTS = model
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.4
     cfg.freeze()
     default_setup(cfg, args)
     return cfg
 
-def main(args):
-    '''
-    config_file -> saved weights
-    threshold -> score threshold
-    dataset -> where to get images from
-    '''
-    cfg = setup(args)
+def main(args, dataset, model):
+    cfg = setup(args, model)
     predictor = DefaultPredictor(cfg)
-    register_datatsets()
-    dataset_path = f'FYBRData/test/{args.dataset}'
-    with open(f'{dataset_path}/segs.json', 'r') as f:
+    register_datasets('/home/ubuntu/tiled-data/')
+    with open(os.path.join('/home/ubuntu/tiled-data/train/', dataset+'/segs.json'), 'r') as f:
         data = json.load(f)
-    visualize(predictor, data, args.dataset)
+    visualize(predictor, data, dataset)
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
-    main(args)
+    dataset = 'Kelowna'
+    model = '/home/ubuntu/drone-tree-id/output/model_0034999.pth'
+    main(args, dataset, model)
