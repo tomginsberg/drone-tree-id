@@ -9,14 +9,14 @@ from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_resul
 from detectron2.utils.logger import setup_logger
 
 from deepent.config import add_deepent_config
-from deepent.data_processing.register_datasets import register_datasets
+from deepent.data.register_datasets import register_datasets
 
 
 class Trainer(DefaultTrainer):
     @classmethod
     def build_evaluator(cls, cfg, dataset_name):
         output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
-        evaluators = [COCOEvaluator(dataset_name, cfg, True, output_folder)]
+        evaluators = [COCOEvaluator(dataset_name, cfg, False, output_folder)]
         return DatasetEvaluators(evaluators)
 
 
@@ -50,7 +50,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    register_datasets()
+    register_datasets('/home/ubuntu/tiled-data')
     args = default_argument_parser().parse_args()
-    print("Command Line Args:", args)
-    main(args)
+    launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))

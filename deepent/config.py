@@ -8,4 +8,3 @@ def add_deepent_config(cfg):
     _C = cfg
 
     _C.MODEL.CUSTOM = CN()
-    _C.MODEL.DEVICE = 'cpu'

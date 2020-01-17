@@ -30,4 +30,4 @@ def register_datasets(dataset_path: str):
 
 
 if __name__ == '__main__':
-    register_datasets(dataset_path='tiled-data')
+    register_datasets(dataset_path='/home/ubuntu/tiled-data')

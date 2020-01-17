@@ -292,6 +292,6 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    dt = DataTiler('datasets', 'tiled-data', cleanup_on_init=False)
+    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/tiled-data', cleanup_on_init=False)
     dt.tile_dataset()
     # dt.cleanup()
