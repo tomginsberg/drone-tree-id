@@ -178,6 +178,10 @@ class DataTiler:
                 with open(os.path.join(self.output_dir, train_test, dataset_name, 'segs.json'), 'w') as f:
                     f.write(json.dumps(rec))
 
+        print(f'Writing Classes f{self.classes}')
+        with open(os.path.join(self.output_dir, 'classes.json'), 'w') as f:
+            f.write(json.dumps(self.classes))
+
     def build_output_dir_structure(self):
         """
         Constructs the file structure
@@ -288,6 +292,6 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    dt = DataTiler('datasets', 'tiled-data', cleanup_on_init=True)
+    dt = DataTiler('datasets', 'tiled-data', cleanup_on_init=False)
     dt.tile_dataset()
     # dt.cleanup()
