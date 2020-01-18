@@ -429,7 +429,7 @@ def build_deepent_fuse_resnet_backbone(cfg, input_shape):
     # need registration of new blocks/stems?
     norm = cfg.MODEL.RESNETS.NORM
     stem = BasicStem(
-        rgb_channels=input_shape.channels,
+        rgb_channels=input_shape.channels-1,
         d_channels=1,
         out_channels=cfg.MODEL.RESNETS.STEM_OUT_CHANNELS,
         norm=norm,
