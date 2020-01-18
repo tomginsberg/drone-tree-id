@@ -64,7 +64,7 @@ To train the model, run the training script with appropriate flags:
 * `OUTPUT_DIR`: the output path directory, for example: output/<name of experiment>
 For example:
 ```
-python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml OUTPUT_DIR /path/to/output/dir
+python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml OUTPUT_DIR path/to/output/dir
 ```
 
 ### Leonhard
@@ -91,5 +91,9 @@ To create a 6x2 sample visualization of model inference, run the following with 
 * `--samples`: number of sample visualizations to produce
 * `--output`: path to store visualizations
 ```
-python vis.py --threshold 0.5 --config-file configs/deepent_rcnn_R_50_FPN.yaml --model output/model_0034999.pth --samples 1 --dataset CPT2a-n_test --output output/vis/
+python vis.py --threshold 0.5 --config-file configs/deepent_rcnn_R_50_FPN.yaml --model output/baseline_17_01_2019/model_0019999.pth --samples 1 --dataset SAL_test --output output/baseline_17_01_2019/vis/ --type comparison
+```
+and then transfer
+```
+scp -r -i ~/.ssh/vm.pem ubuntu@ec2-54-226-164-33.compute-1.amazonaws.com:/home/ubuntu/drone-tree-id/output/baseline_17_01_2019/vis Desktop/vis
 ```

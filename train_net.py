@@ -50,6 +50,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    register_datasets('/home/ubuntu/tiled-data')
+    register_datasets('/home/ubuntu/RGBD-Tree-Segs')
     args = default_argument_parser().parse_args()
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))

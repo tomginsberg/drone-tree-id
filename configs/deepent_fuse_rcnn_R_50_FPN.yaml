@@ -1,7 +1,5 @@
 _BASE_: "Base-DeepEnt-RCNN-FPN.yaml"
 MODEL:
-  BACKBONE:
-    NAME: "build_deepent_fpn_backbone"
   WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
   MASK_ON: True
   RESNETS:
