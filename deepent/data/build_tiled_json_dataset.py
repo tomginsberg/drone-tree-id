@@ -36,13 +36,17 @@ class DataTiler:
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
 
-        self.dataset_input_paths = glob(os.path.join(input_dir, 'C*n'))
+        self.dataset_input_paths = glob(os.path.join(input_dir, '*'))
         self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
         self.classes = {}
+
         if cleanup_on_init:
-            self.cleanup()
+            try:
+                self.cleanup()
+            except FileNotFoundError:
+                print('No directory to cleanup. Proceeding')
 
     def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray) -> List[List[Dict[str, any]]]:
         """
@@ -312,6 +316,7 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
+    # dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=False)
     dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False)
     dt.tile_dataset()
     # dt.cleanup()
