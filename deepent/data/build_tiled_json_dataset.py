@@ -19,8 +19,8 @@ np.random.seed(42)
 
 # TODO: Complete Docstrings
 class DataTiler:
-    def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 600,
-                 tile_height: int = 600, horizontal_overlay: int = 300, vertical_overlay: int = 300,
+    def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
+                 tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
                  cleanup_on_init: bool = False):
         """
         :param input_dir:
@@ -96,7 +96,7 @@ class DataTiler:
         print(f'Tiling Shapes for {os.path.basename(dataset_directory)}')
         for shape_rec in tqdm(shape_recs):
             shp = shape_rec.shape
-            if shp.shapeType == 5:  # 5 - polygon
+            if shp.shapeType == 5 and len(shp.points) > 2:  # 5 - polygon
 
                 class_name = shape_rec.record.segClass
                 # Update class dict
@@ -132,7 +132,7 @@ class DataTiler:
                             )
         return annotations
 
-    def tile_dataset(self, tile_filtering_function=None, train_limit: int = 80):
+    def tile_dataset(self, tile_filtering_function=lambda tile, annotation: True, train_limit: int = 80):
         """
 
         :param tile_filtering_function:
@@ -169,34 +169,44 @@ class DataTiler:
             tile_number, train_id, test_id = 0, 0, 0
             train_record, test_record = [], []
             num_tiles = ceil(img_w / self.dx) * ceil(img_h / self.dy)
+            bad_tiles = 0
 
             for y in range(0, img_h, self.dy):
                 for x in range(0, img_w, self.dx):
                     train_test = np.random.randint(0, 100)
                     x_c = x + self.tile_width if x + self.tile_width <= img_w else img_w
                     y_c = y + self.tile_height if y + self.tile_height <= img_h else img_h
-                    if train_test <= train_limit:
-                        image_output_dir = os.path.join(self.output_dir, 'train', dataset_name, f'tile_{train_id}.png')
-                        train_id += 1
-                        train_record.append(
-                            {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
-                             'height': (y_c - y),
-                             'annotations': annotations[tile_number]})
-                    else:
-                        image_output_dir = os.path.join(self.output_dir, 'test', dataset_name, f'tile_{test_id}.png')
-                        test_id += 1
-                        test_record.append(
-                            {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
-                             'height': (y_c - y),
-                             'annotations': annotations[tile_number]})
 
                     tile = ortho[y:y_c, x:x_c]
                     tile[:, :, -1] = chm[y:y_c, x:x_c]
 
-                    cv2.imwrite(image_output_dir, tile)
+                    if tile_filtering_function(tile, annotations[tile_number]):
+                        if train_test <= train_limit:
+                            image_output_dir = os.path.join(self.output_dir, 'train', dataset_name,
+                                                            f'tile_{train_id}.png')
+                            train_id += 1
+                            train_record.append(
+                                {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
+                                 'height': (y_c - y),
+                                 'annotations': annotations[tile_number]})
+                        else:
+                            image_output_dir = os.path.join(self.output_dir, 'test', dataset_name,
+                                                            f'tile_{test_id}.png')
+                            test_id += 1
+                            test_record.append(
+                                {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
+                                 'height': (y_c - y),
+                                 'annotations': annotations[tile_number]})
+
+                        cv2.imwrite(image_output_dir, tile)
+                    else:
+                        bad_tiles += 1
+
                     tile_number += 1
                     if tile_number % 200 == 0:
                         print(f'Tile # {tile_number} of {num_tiles} created for {dataset_name}')
+
+            print(f'{dataset_name} complete. {bad_tiles} bad tiles removed.')
 
             for train_test, rec in zip(['train', 'test'], [train_record, test_record]):
                 with open(os.path.join(self.output_dir, train_test, dataset_name, 'segs.json'), 'w') as f:
@@ -316,7 +326,8 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    # dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=False)
-    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False)
+    # dt = DataTiler('datasets', 'filter-segs', cleanup_on_init=False)
+    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False, tile_width=640,
+                   tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     dt.tile_dataset()
     # dt.cleanup()
