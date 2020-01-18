@@ -56,14 +56,35 @@ To benchmark training or evalutation sessions:
 
 To train the model, run the training script with appropriate flags:
 * `--config-file`: the config file to load
-* `--num-gpus`: 
+* `OUTPUT_DIR`: the output path directory
 For example:
 ```
-python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml --num-gpus 8
+python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml OUTPUT_DIR /path/to/output/dir
 ```
 
 ### Leonhard
+
 You can run a batch training by compiling and executing the `train` script
 
 ## Evaluation
-To only evaluate the model without training:
+
+To evaluation the model, run the training script with appropriate flags:
+* `--config-file`: the config file to load
+* `MODEL.WEIGHTS`: the weight file to load
+For example:
+```
+python train_net.py --config-file /home/ubuntu/drone-tree-id/configs/deepent_rcnn_R_50_FPN.yaml --eval-only MODEL.WEIGHTS /home/ubuntu/drone-tree-id/output/model_0034999.pth
+```
+
+## Visualization
+
+To create a 6x2 sample visualization of model inference, run the following with the appropriate arguments:
+* `--config-file`: the config file to load
+* `--model`: the weight file to load`
+* `--dataset`: name of the dataset
+* `--threshold`: confidence threshold
+* `--samples`: number of sample visualizations to produce
+* `--output`: path to store visualizations
+```
+python vis.py --threshold 0.5 --config-file configs/deepent_rcnn_R_50_FPN.yaml --model output/model_0034999.pth --samples 1 --dataset CPT2a-n_test --output output/vis/
+```
