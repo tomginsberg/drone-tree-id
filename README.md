@@ -32,6 +32,7 @@ Remember to load modules:
 ```
 module load gcc/6.3.0 python_gpu/3.7.4
 ```
+And add `--user` arg to `pip install` commands on Leonhard. 
 ### AWS
 
 Remember to load the pytorch build:

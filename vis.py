@@ -22,9 +22,11 @@ def visualize(predictor, data, metadata, output, samples, prefix):
             predictions = predictor(img)
             visualizer = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
             vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
+            title = prefix+os.path.basename(dic["file_name"])
+            ax.set_title(title)
             ax.imshow(vis)
         os.makedirs(output, exist_ok=True)
-        plt.savefig(os.path.join(output, prefix+os.path.basename(dic["file_name"])))
+        plt.savefig(os.path.join(output, title))
 
 def setup(args):
     cfg = get_cfg()
@@ -43,7 +45,6 @@ def main(args):
     register_datasets('/home/ubuntu/tiled-data/')
     data = list(DatasetCatalog.get(args.dataset))
     metadata = MetadataCatalog.get(args.dataset)
-#    output = os.path.join(os.path.realpath(cfg.OUTPUT_DIR), args.dataset)
     output = os.path.join(os.path.realpath(cfg.OUTPUT_DIR if args.output is None else args.output), args.dataset) 
     prefix = os.path.basename(args.model).split('.')[0]+'_thresh'+str(args.threshold)+'_'
     visualize(predictor, data, metadata, output, args.samples, prefix)
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--model", required=True, help="Path to model weights")
     parser.add_argument("--config-file", required=True, help="Path to config")
-    parser.add_argument("--dataset", help="name of the dataset", type=str, default="Kelowna_train")
+    parser.add_argument("--dataset", help="name of the dataset", type=str, default="CPT2a-n_test")
     parser.add_argument("--threshold", default=0.5, type=float, help="confidence threshold")
     parser.add_argument("--opts", default=[], type=list, help="additional options")
     parser.add_argument("--samples", default=1, type=int, help="number of sample visualizations to produce")
