@@ -325,31 +325,49 @@ class BasicStem(nn.Module):
         self.rgb_channels, self.d_channels = rgb_channels, d_channels
         self.out_channels = out_channels
 
-        self.conv1 = [Conv2d(
-            in_channels,
+        self.conv1_rgb = Conv2d(
+            self.rgb_channels,
             out_channels,
             kernel_size=7,
             stride=2,
             padding=3,
             bias=False,
             norm=get_norm(norm, out_channels),
-        ) for in_channels in [rgb_channels, d_channels]]
+        )
 
-        for i in range(2):
-            weight_init.c2_msra_fill(self.conv1[i])
+        self.conv1_d = Conv2d(
+            self.d_channels,
+            out_channels,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
+            norm=get_norm(norm, out_channels),
+        )
+
+        for i in (self.conv1_rgb, self.conv1_d):
+            weight_init.c2_msra_fill(i)
 
     def forward(self, x):
         _, channels, _, _ = x.shape
         assert channels == self.rgb_channels + self.d_channels
 
-        ins = x[:, :self.rgb_channels, :, :], x[:, self.rgb_channels:, :, :]
-        outs = [None, None]
-        for i, (in_, conv1) in enumerate(zip(ins, self.conv1)):
-            outs[i] = conv1(in_)
-            outs[i] = F.relu_(outs[i])
-            outs[i] = F.max_pool2d(outs[i], kernel_size=3, stride=2, padding=1)
+        in_rgb, in_d = x[:, :self.rgb_channels, :, :], x[:, self.rgb_channels:, :, :]
 
-        return torch.cat(outs, 1)
+        # for i, (in_, conv1) in enumerate(zip(ins, self.conv1)):
+        #     outs[i] = conv1(in_)
+        #     outs[i] = F.relu_(outs[i])
+        #     outs[i] = F.max_pool2d(outs[i], kernel_size=3, stride=2, padding=1)
+
+        out_rgb = self.conv1_rgb(in_rgb)
+        out_rgb = F.relu_(out_rgb)
+        out_rgb = F.max_pool2d(out_rgb, kernel_size=3, stride=2, padding=1))
+
+        out_d = self.conv1_rgb(out_d)
+        out_d = F.relu_(out_d)
+        out_d = F.max_pool2d(out_d, kernel_size=3, stride=2, padding=1))
+        
+        return torch.cat((out_rgb, out_d), 1)
 
     @property
     def stride(self):
