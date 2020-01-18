@@ -116,14 +116,17 @@ class BottleneckBlock(ResNetBlockBase):
             bias=False,
             norm=get_norm(norm, out_channels),
         ) for _ in range(2)]
-   
-        layers = (self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_rgb, self.conv2_d, self.conv3_rgb, self.conv3_d)
+
+        layers = (
+            self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_rgb, self.conv2_d,
+            self.conv3_rgb,
+            self.conv3_d)
 
         for layer in layers:
             if layer is not None:  # shortcut can be None
                 weight_init.c2_msra_fill(layer)
 
-        #zip together to see if only need to init separately
+        # zip together to see if only need to init separately
         self.shortcuts = (self.shortcut_rgb, self.shortcut_d)
         self.conv1 = (self.conv1_rgb, self.conv1_d)
         self.conv2 = (self.conv2_rgb, self.conv2_d)
@@ -249,7 +252,10 @@ class DeformBottleneckBlock(ResNetBlockBase):
             norm=get_norm(norm, out_channels),
         ) for _ in range(2)]
 
-        layers = (self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_offset_rgb, self.conv2_offset_d, self.conv2_rgb, self.conv2_d, self.conv3_rgb, self.conv3_d)
+        layers = (
+            self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_offset_rgb,
+            self.conv2_offset_d,
+            self.conv2_rgb, self.conv2_d, self.conv3_rgb, self.conv3_d)
 
         for layer in layers:
             if layer is not None:  # shortcut can be None
@@ -259,7 +265,7 @@ class DeformBottleneckBlock(ResNetBlockBase):
             nn.init.constant_(conv.weight, 0)
             nn.init.constant_(conv.bias, 0)
 
-        #zip together to see if only need to init separately
+        # zip together to see if only need to init separately
         self.shortcuts = (self.shortcut_rgb, self.shortcut_d)
         self.conv1 = (self.conv1_rgb, self.conv1_d)
         self.conv2_offset = (self.conv2_offset_rgb, self.conv2_offset_d)
@@ -378,10 +384,10 @@ class BasicStem(nn.Module):
         out_rgb = F.relu_(out_rgb)
         out_rgb = F.max_pool2d(out_rgb, kernel_size=3, stride=2, padding=1)
 
-        out_d = self.conv1_rgb(in_d)
+        out_d = self.conv1_d(in_d)
         out_d = F.relu_(out_d)
         out_d = F.max_pool2d(out_d, kernel_size=3, stride=2, padding=1)
-        
+
         return torch.cat((out_rgb, out_d), 1)
 
     @property
