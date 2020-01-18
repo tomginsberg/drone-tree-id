@@ -140,3 +140,4 @@ Untitled.ipynb
 .DS_Store
 notebooks/shapefile.ipynb
 !/lib/detectron2/
+models/

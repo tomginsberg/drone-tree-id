@@ -1,0 +1,1 @@
+from deepent.modelling.backbone.deepent_fuse_resnet import build_deepent_fpn_backbone
