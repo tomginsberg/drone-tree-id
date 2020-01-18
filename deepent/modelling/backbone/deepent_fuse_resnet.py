@@ -13,12 +13,11 @@ from detectron2.layers import (
     get_norm,
 )
 from detectron2.modeling import FPN
+from detectron2.modeling import BACKBONE_REGISTRY
 from detectron2.modeling.backbone.backbone import Backbone
 from detectron2.modeling.backbone.fpn import LastLevelMaxPool
 from detectron2.modeling.backbone.resnet import ResNetBlockBase
 from detectron2.utils.registry import Registry
-
-BACKBONE_REGISTRY = Registry("BACKBONE")
 
 """
 An RGB-D backbone for Mask R-CNN built off the detectron2 ResNet backbone 
@@ -35,6 +34,7 @@ Basic block architecture:
      - - - - > (short cut) - - -|
 """
 
+__all__ = ["build_deepent_fpn_backbone"]
 
 class BottleneckBlock(ResNetBlockBase):
     def __init__(
@@ -389,12 +389,6 @@ class ResNet(Backbone):
                 current_stride * np.prod([k.stride for k in blocks])
             )
             self._out_feature_channels[name] = blocks[-1].out_channels
-
-            # Sec 5.1 in "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour":
-            # "The 1000-way fully-connected layer is initialized by
-            # drawing weights from a zero-mean Gaussian with standard deviation of 0.01."
-            nn.init.normal_(self.linear.weight, std=0.01)
-            name = "linear"
 
         if out_features is None:
             out_features = [name]
