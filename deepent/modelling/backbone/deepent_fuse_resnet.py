@@ -182,7 +182,7 @@ class DeformBottleneckBlock(ResNetBlockBase):
         self.cat_outs = cat_outs
 
         if in_channels != out_channels:
-            self.shortcuts = [Conv2d(
+            self.shortcut_rgb, self.shortcut_d = [Conv2d(
                 in_channels,
                 out_channels,
                 kernel_size=1,
@@ -191,11 +191,11 @@ class DeformBottleneckBlock(ResNetBlockBase):
                 norm=get_norm(norm, out_channels),
             ) for _ in range(2)]
         else:
-            self.shortcuts = [None, None]
+            self.shortcut_rgb, self.shortcut_d = [None, None]
 
         stride_1x1, stride_3x3 = (stride, 1) if stride_in_1x1 else (1, stride)
 
-        self.conv1 = [Conv2d(
+        self.conv1_rgb, self.conv1_d = [Conv2d(
             in_channels,
             bottleneck_channels,
             kernel_size=1,
@@ -212,7 +212,7 @@ class DeformBottleneckBlock(ResNetBlockBase):
             deform_conv_op = DeformConv
             offset_channels = 18
 
-        self.conv2_offset = [Conv2d(
+        self.conv2_offset_rgb, self.conv2_offset_d = [Conv2d(
             bottleneck_channels,
             offset_channels * deform_num_groups,
             kernel_size=3,
@@ -221,7 +221,7 @@ class DeformBottleneckBlock(ResNetBlockBase):
             dilation=dilation,
         ) for _ in range(2)]
 
-        self.conv2 = [deform_conv_op(
+        self.conv2_rgb, self.conv2_d = [deform_conv_op(
             bottleneck_channels,
             bottleneck_channels,
             kernel_size=3,
@@ -234,7 +234,7 @@ class DeformBottleneckBlock(ResNetBlockBase):
             norm=get_norm(norm, bottleneck_channels),
         ) for _ in range(2)]
 
-        self.conv3 = [Conv2d(
+        self.conv3_rgb, self.conv3_d = [Conv2d(
             bottleneck_channels,
             out_channels,
             kernel_size=1,
@@ -242,14 +242,22 @@ class DeformBottleneckBlock(ResNetBlockBase):
             norm=get_norm(norm, out_channels),
         ) for _ in range(2)]
 
-        for layers in [self.conv1, self.conv2, self.conv3, self.shortcuts]:
-            for layer in layers:
-                if layer is not None:  # shortcut can be None
-                    weight_init.c2_msra_fill(layer)
+        layers = (self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_offset_rgb, self.conv2_offset_d, self.conv2_rgb, self.conv2_d, self.conv3_rgb, self.conv3_d)
 
-        for conv in self.conv2_offset:
+        for layer in layers:
+            if layer is not None:  # shortcut can be None
+                weight_init.c2_msra_fill(layer)
+
+        for conv in (self.conv2_offset_rgb, self.conv2_offset_d):
             nn.init.constant_(conv.weight, 0)
             nn.init.constant_(conv.bias, 0)
+
+        #zip together to see if only need to init separately
+        self.shortcuts = (self.shortcut_rgb, self.shortcut_d)
+        self.conv1 = (self.conv1_rgb, self.conv1_d)
+        self.conv2_offset = (self.conv2_offset_rgb, self.conv2_offset_d)
+        self.conv2 = (self.conv2_rgb, self.conv2_d)
+        self.conv3 = (self.conv3_rgb, self.conv3_d)
 
     def forward(self, x):
         ins = x[:, :self.in_channels, :, :], x[:, self.in_channels:, :, :]
@@ -363,7 +371,7 @@ class BasicStem(nn.Module):
         out_rgb = F.relu_(out_rgb)
         out_rgb = F.max_pool2d(out_rgb, kernel_size=3, stride=2, padding=1)
 
-        out_d = self.conv1_rgb(out_d)
+        out_d = self.conv1_rgb(in_d)
         out_d = F.relu_(out_d)
         out_d = F.max_pool2d(out_d, kernel_size=3, stride=2, padding=1)
         
