@@ -361,11 +361,11 @@ class BasicStem(nn.Module):
 
         out_rgb = self.conv1_rgb(in_rgb)
         out_rgb = F.relu_(out_rgb)
-        out_rgb = F.max_pool2d(out_rgb, kernel_size=3, stride=2, padding=1))
+        out_rgb = F.max_pool2d(out_rgb, kernel_size=3, stride=2, padding=1)
 
         out_d = self.conv1_rgb(out_d)
         out_d = F.relu_(out_d)
-        out_d = F.max_pool2d(out_d, kernel_size=3, stride=2, padding=1))
+        out_d = F.max_pool2d(out_d, kernel_size=3, stride=2, padding=1)
         
         return torch.cat((out_rgb, out_d), 1)
 
