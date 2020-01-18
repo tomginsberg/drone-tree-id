@@ -422,7 +422,7 @@ class ResNet(Backbone):
 
 # noinspection PyUnresolvedReferences
 @BACKBONE_REGISTRY.register()
-def build_resnet_backbone(cfg, input_shape):
+def build_deepent_fuse_resnet_backbone(cfg, input_shape):
     """
     Create a ResNet instance from config.
 
