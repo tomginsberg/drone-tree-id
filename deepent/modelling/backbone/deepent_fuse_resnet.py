@@ -72,7 +72,7 @@ class BottleneckBlock(ResNetBlockBase):
         self.fuse_block = fuse_block
         self.cat_outs = cat_outs
         if in_channels != out_channels:
-            self.shortcuts = [Conv2d(
+            self.shortcut_rgb, self.shortcut_d = [Conv2d(
                 in_channels,
                 out_channels,
                 kernel_size=1,
@@ -81,14 +81,14 @@ class BottleneckBlock(ResNetBlockBase):
                 norm=get_norm(norm, out_channels),
             ) for _ in range(2)]
         else:
-            self.shortcuts = [None, None]
+            self.shortcut_rgb, self.shortcut_d = [None, None]
 
         # The original MSRA ResNet models have stride in the first 1x1 conv
         # The subsequent fb.torch.resnet and Caffe2 ResNe[X]t implementations have
         # stride in the 3x3 conv
         stride_1x1, stride_3x3 = (stride, 1) if stride_in_1x1 else (1, stride)
 
-        self.conv1 = [Conv2d(
+        self.conv1_rgb, self.conv1_d = [Conv2d(
             in_channels,
             bottleneck_channels,
             kernel_size=1,
@@ -97,7 +97,7 @@ class BottleneckBlock(ResNetBlockBase):
             norm=get_norm(norm, bottleneck_channels),
         ) for _ in range(2)]
 
-        self.conv2 = [Conv2d(
+        self.conv2_rgb, self.conv2_d = [Conv2d(
             bottleneck_channels,
             bottleneck_channels,
             kernel_size=3,
@@ -109,18 +109,25 @@ class BottleneckBlock(ResNetBlockBase):
             norm=get_norm(norm, bottleneck_channels),
         ) for _ in range(2)]
 
-        self.conv3 = [Conv2d(
+        self.conv3_rgb, self.conv3_d = [Conv2d(
             bottleneck_channels,
             out_channels,
             kernel_size=1,
             bias=False,
             norm=get_norm(norm, out_channels),
         ) for _ in range(2)]
+   
+        layers = (self.shortcut_rgb, self.shortcut_d, self.conv1_rgb, self.conv1_d, self.conv2_rgb, self.conv2_d, self.conv3_rgb, self.conv3_d)
 
-        for layers in [self.conv1, self.conv2, self.conv3, self.shortcuts]:
-            for layer in layers:
-                if layer is not None:  # shortcut can be None
-                    weight_init.c2_msra_fill(layer)
+        for layer in layers:
+            if layer is not None:  # shortcut can be None
+                weight_init.c2_msra_fill(layer)
+
+        #zip together to see if only need to init separately
+        self.shortcuts = (self.shortcut_rgb, self.shortcut_d)
+        self.conv1 = (self.conv1_rgb, self.conv1_d)
+        self.conv2 = (self.conv2_rgb, self.conv2_d)
+        self.conv3 = (self.conv3_rgb, self.conv3_d)
 
     def forward(self, x):
         # dims of x [batch_size, channels rgb + channels d = 2 * channels rgb, w, h]
