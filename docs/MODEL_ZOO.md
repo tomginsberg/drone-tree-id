@@ -17,17 +17,19 @@ Model Attributes:
 <th valign="bottom">train<br/>time<br/>(s/iter)</th>
 <th valign="bottom">inference<br/>time<br/>(s/im)</th>
 <th valign="bottom">train<br/>mem<br/>(GB)</th>
+<th valign="bottom">its</th>
 <th valign="bottom">box<br/>AP</th>
 <th valign="bottom">dp.<br/>AP</th>
 <!-- TABLE BODY --> 
 <!-- ROW: deepent_rcnn_R_101 baseline --> 
 <tr><td align="left"><a href="../configs/deepent_rcnn_R_101_FPN.yaml.yaml">R_101_FPN</a></td>
+<td align="center">deepent_rcnn_R_50_FPN</td>
+<td align="center">0.02</td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
+<td align="center">35000</td>
+<td align="center">92.0818</td>
+<td align="center">85.4635</td>
 </tr>
 </tbody></table>

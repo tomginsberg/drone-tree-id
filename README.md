@@ -1,5 +1,10 @@
-# Tree Crown Instance Segmentation
-blurb
+# Dense Canopy Tree Crown Instance Segmentation
+
+A FYBR Solutions Inc. engine
+
+<div align="center">
+  <img src="docs/home.png"/>
+</div>
 
 ## Framework Structure
 * `config/` - definition of config files, which defines architecture, pretrained model to load, hyperparameters...
