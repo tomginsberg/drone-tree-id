@@ -12,12 +12,11 @@ from detectron2.layers import (
     ShapeSpec,
     get_norm,
 )
-from detectron2.modeling import FPN
 from detectron2.modeling import BACKBONE_REGISTRY
+from detectron2.modeling import FPN
 from detectron2.modeling.backbone.backbone import Backbone
 from detectron2.modeling.backbone.fpn import LastLevelMaxPool
 from detectron2.modeling.backbone.resnet import ResNetBlockBase
-from detectron2.utils.registry import Registry
 
 """
 An RGB-D backbone for Mask R-CNN built off the detectron2 ResNet backbone 
@@ -35,6 +34,7 @@ Basic block architecture:
 """
 
 __all__ = ["build_deepent_fpn_backbone"]
+
 
 class BottleneckBlock(ResNetBlockBase):
     def __init__(
@@ -129,7 +129,7 @@ class BottleneckBlock(ResNetBlockBase):
         outs = [None, None]
 
         for i, (in_, conv1, conv2, conv3, shortcut_fn) in enumerate(
-                zip(ins, outs, self.conv1, self.conv2, self.conv3, self.shortcuts)):
+                zip(ins, self.conv1, self.conv2, self.conv3, self.shortcuts)):
 
             outs[i] = conv1(in_)
             outs[i] = F.relu_(outs[i])
@@ -429,7 +429,7 @@ def build_deepent_fuse_resnet_backbone(cfg, input_shape):
     # need registration of new blocks/stems?
     norm = cfg.MODEL.RESNETS.NORM
     stem = BasicStem(
-        rgb_channels=input_shape.channels-1,
+        rgb_channels=input_shape.channels - 1,
         d_channels=1,
         out_channels=cfg.MODEL.RESNETS.STEM_OUT_CHANNELS,
         norm=norm,
