@@ -14,6 +14,8 @@ import shapefile
 from skimage.io import imread
 from tqdm import tqdm
 
+np.random.seed(42)
+
 
 # TODO: Complete Docstrings
 class DataTiler:
@@ -34,7 +36,7 @@ class DataTiler:
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
 
-        self.dataset_input_paths = glob(os.path.join(input_dir, '*'))
+        self.dataset_input_paths = glob(os.path.join(input_dir, 'C*n'))
         self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
@@ -63,7 +65,7 @@ class DataTiler:
         # Locate ShapeFile in datasets/dataset/Segments/ directory
         shapefile_name = glob(os.path.join(dataset_directory, 'Segments', '*'))[0][:-4]
 
-        print(f'Importing Shapefile f{shapefile_name}')
+        print(f'Importing Shapefile {shapefile_name}')
         shpf = shapefile.Reader(shapefile_name)
 
         shape_recs = shpf.shapeRecords()
@@ -126,11 +128,11 @@ class DataTiler:
                             )
         return annotations
 
-    def tile_dataset(self, tile_filtering_function=None, train_to_test: int = 80):
+    def tile_dataset(self, tile_filtering_function=None, train_limit: int = 80):
         """
 
         :param tile_filtering_function:
-        :param train_to_test:
+        :param train_limit:
         :raises FileNotFoundError: if a single file matching *ortho.tif cannot be found in the dataset path
         """
         self.build_output_dir_structure()
@@ -140,21 +142,36 @@ class DataTiler:
                 raise FileNotFoundError('Either 0 or > 1 files matching *ortho.tif found.')
             ortho_name = ortho_name[0]
 
+            chm_name = glob(os.path.join(dataset_directory, '*up_CHM.tif'))
+            if len(chm_name) != 1:
+                raise FileNotFoundError('Either 0 or > 1 files matching *up_CHM.tif found.')
+            chm_name = chm_name[0]
+
             print(f'Reading Ortho: {ortho_name}')
-            img = imread(ortho_name)
+            ortho = imread(ortho_name)
 
-            annotations = self._tile_segments(dataset_directory, ortho_name, img)
+            print(f'Reading Ortho: {chm_name}')
+            chm = imread(chm_name)
+            print('Normalizing CHM')
+            chm = np.where(chm == -np.inf, 0, chm)
+            chm = (255 * (chm - np.min(chm)) / np.max(chm)).astype(ortho.dtype)
 
-            img_h, img_w = img.shape[:2]
+            assert (chm.shape[:2] == ortho.shape[:2]), 'Ortho and CHM are different shapes'
+            assert ortho.shape[-1] == 4, 'Ortho should contain a 4th channel'
+
+            annotations = self._tile_segments(dataset_directory, ortho_name, ortho)
+
+            img_h, img_w = ortho.shape[:2]
             tile_number, train_id, test_id = 0, 0, 0
             train_record, test_record = [], []
             num_tiles = ceil(img_w / self.dx) * ceil(img_h / self.dy)
 
             for y in range(0, img_h, self.dy):
                 for x in range(0, img_w, self.dx):
+                    train_test = np.random.randint(0, 100)
                     x_c = x + self.tile_width if x + self.tile_width <= img_w else img_w
                     y_c = y + self.tile_height if y + self.tile_height <= img_h else img_h
-                    if tile_number % 100 <= train_to_test:
+                    if train_test <= train_limit:
                         image_output_dir = os.path.join(self.output_dir, 'train', dataset_name, f'tile_{train_id}.png')
                         train_id += 1
                         train_record.append(
@@ -169,7 +186,10 @@ class DataTiler:
                              'height': (y_c - y),
                              'annotations': annotations[tile_number]})
 
-                    cv2.imwrite(image_output_dir, img[y:y_c, x:x_c])
+                    tile = ortho[y:y_c, x:x_c]
+                    tile[:, :, -1] = chm[y:y_c, x:x_c]
+
+                    cv2.imwrite(image_output_dir, tile)
                     tile_number += 1
                     if tile_number % 200 == 0:
                         print(f'Tile # {tile_number} of {num_tiles} created for {dataset_name}')
@@ -292,6 +312,6 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/tiled-data', cleanup_on_init=False)
+    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False)
     dt.tile_dataset()
     # dt.cleanup()
