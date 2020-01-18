@@ -12,7 +12,6 @@ def register_datasets(dataset_path: str):
     def data_getter(data):
         def f():
             return data
-
         return f
 
     with open(os.path.join(dataset_path, 'classes.json'), 'r') as f:
