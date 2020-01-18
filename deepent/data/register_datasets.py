@@ -9,6 +9,12 @@ from detectron2.structures import BoxMode
 
 
 def register_datasets(dataset_path: str):
+    def data_getter(data):
+        def f():
+            return data
+
+        return f
+
     with open(os.path.join(dataset_path, 'classes.json'), 'r') as f:
         classes = json.load(f)
     classes = sorted(classes.keys(), key=lambda x: classes[x])
@@ -25,7 +31,7 @@ def register_datasets(dataset_path: str):
             if dataset not in DatasetCatalog.list():
                 register_name = f'{os.path.basename(dataset)}_{train_test}'
                 print(f'Registering {register_name}')
-                DatasetCatalog.register(register_name, lambda: data)
+                DatasetCatalog.register(register_name, data_getter(data))
                 MetadataCatalog.get(register_name).set(thing_classes=classes)
 
 
