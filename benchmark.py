@@ -150,5 +150,5 @@ if __name__ == "__main__":
         f = benchmark_eval
         # only benchmark single-GPU inference.
         assert args.num_gpus == 1 and args.num_machines == 1
-    register_datasets('/home/ubuntu/tiled-data')
+    register_datasets('/home/ubuntu/RGBD-Tree-Segs')
     launch(f, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))

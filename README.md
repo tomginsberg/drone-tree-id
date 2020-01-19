@@ -1,7 +1,5 @@
 # Dense Canopy Tree Crown Instance Segmentation
 
-A FYBR Solutions Inc. engine
-
 <div align="center">
   <img src="docs/home.png"/>
 </div>
@@ -54,9 +52,6 @@ chmod +x setup
 ./setup
 ```
 
-## Benchmarking
-To benchmark training or evalutation sessions:
-
 ## Training
 
 To train the model, run the training script with appropriate flags:
@@ -80,6 +75,13 @@ For example:
 ```
 python train_net.py --config-file /home/ubuntu/drone-tree-id/configs/deepent_rcnn_R_50_FPN.yaml --eval-only MODEL.WEIGHTS /home/ubuntu/drone-tree-id/output/model_0034999.pth
 ```
+
+## Benchmarking
+To benchmark training or evalutation sessions:
+```
+python benchmark.py --config-file configs/deepent_rcnn_R_50_FPN.yaml --task train
+```
+
 
 ## Visualization
 
