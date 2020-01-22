@@ -141,3 +141,4 @@ Untitled.ipynb
 notebooks/shapefile.ipynb
 !/lib/detectron2/
 models/
+nohup.out
