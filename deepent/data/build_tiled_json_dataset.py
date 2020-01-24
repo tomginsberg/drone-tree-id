@@ -41,6 +41,8 @@ class DataTiler:
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
         self.classes = {}
+        self.ortho_means = []
+        self.chm_means = []
 
         if cleanup_on_init:
             try:
@@ -96,7 +98,7 @@ class DataTiler:
         print(f'Tiling Shapes for {os.path.basename(dataset_directory)}')
         for shape_rec in tqdm(shape_recs):
             shp = shape_rec.shape
-            if shp.shapeType == 5 and len(shp.points) > 2:  # 5 - polygon
+            if shp.shapeType == 5:  # 5 - polygon
 
                 class_name = shape_rec.record.segClass
                 # Update class dict
@@ -105,6 +107,8 @@ class DataTiler:
 
                 # transform polygon and bounding into image coordinate system
                 rescaled_poly = [[rescale_x(x), rescale_y(y)] for x, y in fix_polygon_tail(shp.points)]
+                if len(rescaled_poly) < 3:
+                    continue
 
                 shape_bbox = [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[3]),
                               rescale_x(shp.bbox[2]), rescale_y(shp.bbox[1])]
@@ -153,12 +157,20 @@ class DataTiler:
 
             print(f'Reading Ortho: {ortho_name}')
             ortho = imread(ortho_name)
+            mean = [np.mean(ortho[:, :, i]) for i in range(3)]
+            print(f'Pixel Mean is {mean}')
+            self.ortho_means.append(mean)
 
-            print(f'Reading Ortho: {chm_name}')
+            print(f'Reading CHM: {chm_name}')
             chm = imread(chm_name)
-            print('Normalizing CHM')
+
+            print('Cleaning NaN values from CHM')
             chm = np.where(chm == -np.inf, 0, chm)
+            print('Rescaling to [0, 255]')
             chm = (255 * (chm - np.min(chm)) / np.max(chm)).astype(ortho.dtype)
+            mean = np.mean(chm)
+            print(f'Pixel Mean is {mean}')
+            self.chm_means.append(mean)
 
             assert (chm.shape[:2] == ortho.shape[:2]), 'Ortho and CHM are different shapes'
             assert ortho.shape[-1] == 4, 'Ortho should contain a 4th channel'
@@ -215,6 +227,7 @@ class DataTiler:
         print(f'Writing Classes f{self.classes}')
         with open(os.path.join(self.output_dir, 'classes.json'), 'w') as f:
             f.write(json.dumps(self.classes))
+        print(f'Means {{CHM: {np.mean(self.chm_means)}, Ortho: f{np.mean(self.ortho_means, axis=0)}}}')
 
     def build_output_dir_structure(self):
         """
@@ -326,8 +339,13 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 
 if __name__ == '__main__':
-    # dt = DataTiler('datasets', 'filter-segs', cleanup_on_init=False)
-    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False, tile_width=640,
-                   tile_height=640, horizontal_overlay=320, vertical_overlay=320)
+    if glob('RGBD-Tree-Segs'):
+        print('Your on Tom\'s Mac')
+        dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=True, tile_width=640,
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320)
+    else:
+        print('Your on AWS')
+        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False, tile_width=640,
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     dt.tile_dataset()
     # dt.cleanup()
