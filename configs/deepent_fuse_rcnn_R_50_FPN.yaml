@@ -1,5 +1,11 @@
 _BASE_: "Base-DeepEnt-RCNN-FPN.yaml"
 MODEL:
+  BACKBONE:
+    DEPTH:
+      STEM_OUT_CHANNELS: 64
+      FREEZE_AT: 0
+      OUT_FEATURES: ["res2", "res3", "res4", "res5"]
+      RES2_OUT_CHANNELS: 256
   WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
   MASK_ON: True
   RESNETS:
