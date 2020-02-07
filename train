@@ -1,5 +1,0 @@
-#!/bin/bash
-
-module load gcc/6.3.0 python_gpu/3.7.4
-
-bsub -o output/leonhard_logs -n 4 -R "rusage[mem=4500,ngpus_excl_p=1]" -R "select[gpu_model0==GeForceGTX1080Ti]" python train_net.py --config-file /home/ubuntu/drone-tree-id/configs/deepent_rcnn_R_50_FPN.yaml

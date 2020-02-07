@@ -1,3 +1,5 @@
+SEED:
+  1
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   BACKBONE:
