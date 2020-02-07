@@ -1,3 +1,9 @@
+import numpy as np
+from detectron2.modeling import make_stage
+from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
+
+from torch import nn
+
 from deepent.modelling.backbone.depth_encoder import build_depth_encoder_backbone
 from lib.detectron2.detectron2.layers import ShapeSpec, FrozenBatchNorm2d
 from lib.detectron2.detectron2.modeling import ResNet, Backbone, ResNetBlockBase, BACKBONE_REGISTRY
@@ -5,7 +11,7 @@ from lib.detectron2.detectron2.modeling.backbone.fpn import LastLevelMaxPool, FP
 
 
 class FusedResNet(Backbone):
-    def __init__(self, depth_encoder, in_features, stem, stages, num_classes=None, out_features=None):
+    def __init__(self, stem, stages, num_classes=None, depth_encoder=None, in_features=None, out_features=None):
         """
         Args:
             stem (nn.Module): a stem module
@@ -17,6 +23,8 @@ class FusedResNet(Backbone):
                 If None, will return the output of the last layer.
         """
         super(ResNet, self).__init__()
+        if depth_encoder is not None:
+            assert isinstance(depth_encoder, Backbone)
 
         self.depth_encoder = depth_encoder
         self.in_features = in_features
@@ -56,6 +64,10 @@ class FusedResNet(Backbone):
         self._out_features = out_features
         assert len(self._out_features)
         children = [x[0] for x in self.named_children()]
+        # Ensure depth encoder output feature maps are speced to fuse with Resnet feature maps
+        # For now depth encoder is just a resnet, just need to check that its output feature maps are a subset
+        for in_feature in self.in_features:
+            assert in_feature in children, "Available children: {}".format(", ".join(children))
         for out_feature in self._out_features:
             assert out_feature in children, "Available children: {}".format(", ".join(children))
 
@@ -90,18 +102,24 @@ class FusedResNet(Backbone):
         }
 
 
-def build_deepent_fused_resnet_backbone(cfg, input_shape, depth_encoder):
+def build_deepent_fused_resnet_backbone(cfg, input_shape):
     """
     Create a ResNet instance from config.
 
     Returns:
         ResNet: a :class:`ResNet` instance.
     """
+    assert input_shape.channels == 4, f'{input_shape.channels} input channels specified, should be 4'
+    depth_shape = input_shape._replace(channels=1)
+    input_shape = input_shape._replace(channels=3)
+
+    depth_encoder = build_depth_encoder_backbone(cfg, depth_shape)
+
     # need registration of new blocks/stems?
     norm = cfg.MODEL.RESNETS.NORM
-    assert input_shape.channels == 4, f'{input_shape.channels} input channels specified, should be 4'
+
     stem = BasicStem(
-        in_channels=3,
+        in_channels=input_shape.channels,
         out_channels=cfg.MODEL.RESNETS.STEM_OUT_CHANNELS,
         norm=norm,
     )
@@ -114,15 +132,15 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape, depth_encoder):
 
     # fmt: off
     in_features = cfg.MODEL.RESNETS.IN_FEATURES
-    out_features        = cfg.MODEL.RESNETS.OUT_FEATURES
-    depth               = cfg.MODEL.RESNETS.DEPTH
-    num_groups          = cfg.MODEL.RESNETS.NUM_GROUPS
-    width_per_group     = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+    out_features = cfg.MODEL.RESNETS.OUT_FEATURES
+    depth = cfg.MODEL.RESNETS.DEPTH
+    num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
+    width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
     bottleneck_channels = num_groups * width_per_group
-    in_channels         = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
-    out_channels        = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
-    stride_in_1x1       = cfg.MODEL.RESNETS.STRIDE_IN_1X1
-    res5_dilation       = cfg.MODEL.RESNETS.RES5_DILATION
+    in_channels = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
+    out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
+    stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
+    res5_dilation = cfg.MODEL.RESNETS.RES5_DILATION
     # fmt: on
     assert res5_dilation in {1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
 
@@ -150,7 +168,8 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape, depth_encoder):
             for block in blocks:
                 block.freeze()
         stages.append(blocks)
-    return FusedResNet(depth_encoder, in_features, stem, stages, out_features=out_features)
+    return FusedResNet(stem, stages, depth_encoder=depth_encoder, in_features=in_features, out_features=out_features)
+
 
 @BACKBONE_REGISTRY.register()
 def build_deepent_fpn_backbone(cfg, input_shape: ShapeSpec):
@@ -159,8 +178,7 @@ def build_deepent_fpn_backbone(cfg, input_shape: ShapeSpec):
     :param input_shape:
     :returns: backbone (Backbone): backbone module, must be a subclass of :class:`Backbone`.
     """
-    depth_encoder = build_depth_encoder_backbone(cfg, input_shape)
-    bottom_up = build_deepent_fused_resnet_backbone(cfg, input_shape, depth_encoder)
+    bottom_up = build_deepent_fused_resnet_backbone(cfg, input_shape)
     in_features = cfg.MODEL.FPN.IN_FEATURES
     out_channels = cfg.MODEL.FPN.OUT_CHANNELS
     backbone = FPN(

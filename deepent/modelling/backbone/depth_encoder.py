@@ -1,6 +1,5 @@
 from lib.detectron2.detectron2.layers import FrozenBatchNorm2d
-from lib.detectron2.detectron2.modeling.backbone.resnet import BottleneckBlock, ResNet, \
-    make_stage, BasicStem
+from lib.detectron2.detectron2.modeling.backbone.resnet import BottleneckBlock, ResNet, make_stage, BasicStem
 
 
 def build_depth_encoder_backbone(cfg, input_shape):
@@ -12,10 +11,8 @@ def build_depth_encoder_backbone(cfg, input_shape):
     """
     # need registration of new blocks/stems?
     norm = cfg.MODEL.RESNETS.NORM
-    assert input_shape.channels == 4, f'{input_shape.channels} input channels specified, should be 4'
     stem = BasicStem(
-        # in_channels=input_shape.channels,
-        in_channels=1,
+        in_channels=input_shape.channels,
         out_channels=cfg.MODEL.BACKBONE.DEPTH.STEM_OUT_CHANNELS,
         norm=norm,
     )
