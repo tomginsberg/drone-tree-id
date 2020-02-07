@@ -20,17 +20,6 @@
 
 ## Environments
 
-### Leonhard
-
-Ensure you are connected to the ETH network.
-```
-ssh [your_ETH_alias]@login.leonhard.ethz.ch
-```
-Remember to load modules:
-```
-module load gcc/6.3.0 python_gpu/3.7.4
-```
-And add `--user` arg to `pip install` commands on Leonhard. 
 ### AWS
 
 Remember to load the pytorch build:
@@ -45,7 +34,7 @@ source activate pytorch_p36
 cd ~
 git clone https://github.com/roeetal/drone-tree-id.git
 ```
-2. run setup script (for leonhard modify pip install to take `--user` argument):
+2. run setup script:
 ```
 cd ~/drone-tree-id
 chmod +x setup
@@ -61,10 +50,6 @@ For example:
 ```
 python train_net.py --config-file configs/deepent_rcnn_R_101_FPN.yaml OUTPUT_DIR path/to/output/dir
 ```
-
-### Leonhard
-
-You can run a batch training by compiling and executing the `train` script
 
 ## Evaluation
 
