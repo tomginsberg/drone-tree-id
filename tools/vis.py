@@ -1,12 +1,11 @@
 import os
 import random
-import json
 import matplotlib.pyplot as plt
 import cv2
 import argparse
 
 from detectron2.config import get_cfg
-from detectron2.engine import DefaultPredictor, default_argument_parser, default_setup
+from detectron2.engine import DefaultPredictor, default_setup
 from detectron2.utils.visualizer import Visualizer, ColorMode
 from detectron2.data import MetadataCatalog, DatasetCatalog
 

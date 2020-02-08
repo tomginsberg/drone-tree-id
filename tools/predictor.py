@@ -1,3 +1,10 @@
+import torch
+from detectron2.checkpoint import DetectionCheckpointer
+from detectron2.data import MetadataCatalog
+from detectron2.modeling import build_model
+import detectron2.data.transforms as T
+
+
 class RGBDPredictor:
     """
     Create a simple end-to-end predictor with the given config.
@@ -41,9 +48,11 @@ class RGBDPredictor:
         Returns:
             predictions (dict): the output of the model
         """
+        # if len(original_image.shape) == 4:
+
         with torch.no_grad():  # https://github.com/sphinx-doc/sphinx/issues/4258
             # Apply pre-processing to image.
-            if self.input_format == "RGB":
+            if "RGB" in self.input_format:
                 # whether the model expects BGR inputs or RGB
                 original_image = original_image[:, :, ::-1]
             height, width = original_image.shape[:2]
