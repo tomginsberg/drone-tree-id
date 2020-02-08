@@ -14,10 +14,10 @@ from deepent.data.register_datasets import register_datasets
 from deepent.config import add_deepent_config
 
 def visualize_comparison(predictor, data, metadata, output, samples, prefix):
-    for _ in range(samples):
+    dicts = random.sample(data, samples)
+    for dic in dicts:
         fig, axes = plt.subplots(1,2)
         ax = axes.ravel()
-        dic = random.sample(data, 1)[0]
         img = cv2.imread(dic["file_name"])
         predictions = predictor(img)
         visualizer = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
