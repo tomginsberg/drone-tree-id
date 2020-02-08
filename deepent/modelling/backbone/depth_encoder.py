@@ -15,7 +15,7 @@ class DepthEncoder(Backbone):
                 each contains multiple :class:`ResNetBlockBase`.
             num_classes (None or int): if None, will not perform classification.
             out_features (list[str]): name of the layers whose outputs should
-                be returned in forward. Can be anything in "dstem", "dlinear", or "dres2" ...
+                be returned in forward. Can be anything in "stem", "linear", or "res2" ...
                 If None, will return the output of the last layer.
         """
         super(DepthEncoder, self).__init__()
@@ -23,8 +23,8 @@ class DepthEncoder(Backbone):
         self.num_classes = num_classes
 
         current_stride = self.stem.stride
-        self._out_feature_strides = {"d_stem": current_stride}
-        self._out_feature_channels = {"d_stem": self.stem.out_channels}
+        self._out_feature_strides = {"stem": current_stride}
+        self._out_feature_channels = {"stem": self.stem.out_channels}
 
         self.stages_and_names = []
         for i, blocks in enumerate(stages):
@@ -32,7 +32,7 @@ class DepthEncoder(Backbone):
                 assert isinstance(block, ResNetBlockBase), block
                 curr_channels = block.out_channels
             stage = nn.Sequential(*blocks)
-            name = "d_res" + str(i + 2)
+            name = "res" + str(i + 2)
             self.add_module(name, stage)
             self.stages_and_names.append((stage, name))
             self._out_feature_strides[name] = current_stride = int(
@@ -48,7 +48,7 @@ class DepthEncoder(Backbone):
             # "The 1000-way fully-connected layer is initialized by
             # drawing weights from a zero-mean Gaussian with standard deviation of 0.01."
             nn.init.normal_(self.linear.weight, std=0.01)
-            name = "d_linear"
+            name = "linear"
 
         if out_features is None:
             out_features = [name]
@@ -61,8 +61,8 @@ class DepthEncoder(Backbone):
     def forward(self, x):
         outputs = {}
         x = self.stem(x)
-        if "d_stem" in self._out_features:
-            outputs["d_stem"] = x
+        if "stem" in self._out_features:
+            outputs["stem"] = x
         for stage, name in self.stages_and_names:
             x = stage(x)
             if name in self._out_features:
@@ -70,8 +70,8 @@ class DepthEncoder(Backbone):
         if self.num_classes is not None:
             x = self.avgpool(x)
             x = self.linear(x)
-            if "d_linear" in self._out_features:
-                outputs["d_linear"] = x
+            if "linear" in self._out_features:
+                outputs["linear"] = x
         return outputs
 
     def output_shape(self):
@@ -122,7 +122,7 @@ def build_depth_encoder_backbone(cfg, input_shape):
 
     # Avoid creating variables without gradients
     # It consumes extra memory and may cause allreduce to fail
-    out_stage_idx = [{"d_res2": 2, "d_res3": 3, "d_res4": 4, "d_res5": 5}[f] for f in out_features]
+    out_stage_idx = [{"res2": 2, "res3": 3, "res4": 4, "res5": 5}[f] for f in out_features]
     max_stage_idx = max(out_stage_idx)
     for idx, stage_idx in enumerate(range(2, max_stage_idx + 1)):
         dilation = res5_dilation if stage_idx == 5 else 1
