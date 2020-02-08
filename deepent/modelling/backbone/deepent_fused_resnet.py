@@ -1,13 +1,15 @@
 import numpy as np
-from detectron2.modeling import make_stage
-from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
 
 from torch import nn
 
+from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
+from detectron2.layers import ShapeSpec, FrozenBatchNorm2d
+from detectron2.modeling import ResNet, Backbone, ResNetBlockBase, BACKBONE_REGISTRY, make_stage
+from detectron2.modeling.backbone.fpn import LastLevelMaxPool, FPN
+
 from deepent.modelling.backbone.depth_encoder import build_depth_encoder_backbone
-from lib.detectron2.detectron2.layers import ShapeSpec, FrozenBatchNorm2d
-from lib.detectron2.detectron2.modeling import ResNet, Backbone, ResNetBlockBase, BACKBONE_REGISTRY
-from lib.detectron2.detectron2.modeling.backbone.fpn import LastLevelMaxPool, FPN
+
+__all__ = ["build_deepent_fpn_backbone"]
 
 
 class FusedResNet(Backbone):
@@ -22,9 +24,9 @@ class FusedResNet(Backbone):
                 be returned in forward. Can be anything in "stem", "linear", or "res2" ...
                 If None, will return the output of the last layer.
         """
-        super(ResNet, self).__init__()
-        if depth_encoder is not None:
-            assert isinstance(depth_encoder, Backbone)
+        super(FusedResNet, self).__init__()
+        #if depth_encoder is not None:
+        #    assert isinstance(depth_encoder, Backbone)
 
         self.depth_encoder = depth_encoder
         self.in_features = in_features
@@ -83,7 +85,7 @@ class FusedResNet(Backbone):
         for stage, name in self.stages_and_names:
             x = stage(x)
             if name in self.in_features:
-                x += d
+                x = x + d.pop(0)
             if name in self._out_features:
                 outputs[name] = x
         if self.num_classes is not None:
@@ -109,14 +111,13 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape):
     Returns:
         ResNet: a :class:`ResNet` instance.
     """
+    # need registration of new blocks/stems?
+    norm = cfg.MODEL.RESNETS.NORM
+
     assert input_shape.channels == 4, f'{input_shape.channels} input channels specified, should be 4'
     depth_shape = input_shape._replace(channels=1)
     input_shape = input_shape._replace(channels=3)
-
     depth_encoder = build_depth_encoder_backbone(cfg, depth_shape)
-
-    # need registration of new blocks/stems?
-    norm = cfg.MODEL.RESNETS.NORM
 
     stem = BasicStem(
         in_channels=input_shape.channels,

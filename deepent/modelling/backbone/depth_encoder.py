@@ -1,6 +1,6 @@
 from lib.detectron2.detectron2.layers import FrozenBatchNorm2d
 from lib.detectron2.detectron2.modeling.backbone.resnet import BottleneckBlock, ResNet, make_stage, BasicStem
-
+from detectron2.modeling import BACKBONE_REGISTRY
 
 def build_depth_encoder_backbone(cfg, input_shape):
     """
@@ -13,10 +13,10 @@ def build_depth_encoder_backbone(cfg, input_shape):
     norm = cfg.MODEL.RESNETS.NORM
     stem = BasicStem(
         in_channels=input_shape.channels,
-        out_channels=cfg.MODEL.BACKBONE.DEPTH.STEM_OUT_CHANNELS,
+        out_channels=cfg.MODEL.DEPTH_ENCODER.STEM_OUT_CHANNELS,
         norm=norm,
     )
-    freeze_at = cfg.MODEL.BACKBONE.DEPTH.FREEZE_AT
+    freeze_at = cfg.MODEL.DEPTH_ENCODER.FREEZE_AT
 
     if freeze_at >= 1:
         for p in stem.parameters():
@@ -24,13 +24,13 @@ def build_depth_encoder_backbone(cfg, input_shape):
         stem = FrozenBatchNorm2d.convert_frozen_batchnorm(stem)
 
     # fmt: off
-    out_features        = cfg.MODEL.BACKBONE.DEPTH.OUT_FEATURES
+    out_features        = cfg.MODEL.DEPTH_ENCODER.OUT_FEATURES
     depth               = cfg.MODEL.RESNETS.DEPTH
     num_groups          = cfg.MODEL.RESNETS.NUM_GROUPS
     width_per_group     = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
     bottleneck_channels = num_groups * width_per_group
-    in_channels         = cfg.MODEL.BACKBONE.DEPTH.STEM_OUT_CHANNELS
-    out_channels        = cfg.MODEL.BACKBONE.DEPTH.RES2_OUT_CHANNELS
+    in_channels         = cfg.MODEL.DEPTH_ENCODER.STEM_OUT_CHANNELS
+    out_channels        = cfg.MODEL.DEPTH_ENCODER.RES2_OUT_CHANNELS
     stride_in_1x1       = cfg.MODEL.RESNETS.STRIDE_IN_1X1
     res5_dilation       = cfg.MODEL.RESNETS.RES5_DILATION
     # fmt: on

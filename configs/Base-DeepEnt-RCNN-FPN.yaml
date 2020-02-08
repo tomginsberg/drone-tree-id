@@ -1,5 +1,5 @@
 SEED:
-  1
+  24
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   BACKBONE:
@@ -36,7 +36,7 @@ DATASETS:
   TEST: ("Kelowna_test", "CPT2a-n_test", "CPT2b_test", "SALCT1_test", "AMECT9_test",)
 SOLVER:
   IMS_PER_BATCH: 4 #16
-  BASE_LR: 0.01
+  BASE_LR: 0.001
   STEPS: (60000, 80000)
   MAX_ITER: 90000
 INPUT:
