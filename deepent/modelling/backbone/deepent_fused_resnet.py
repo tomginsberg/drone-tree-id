@@ -12,7 +12,7 @@ from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
 
 __all__ = ["build_deepent_fpn_backbone"]
 
-
+# TODO: ensure fusing dimension are correct or convolve to correct dimenions?
 class FusedResNet(Backbone):
     def __init__(self, stem: BasicStem, stages: List[List[ResNetBlockBase]], depth_encoder: DepthEncoder,
                  in_features: Optional[List[str]] = None, out_features: Optional[List[str]] = None):

@@ -23,7 +23,10 @@ def visualize_comparison(predictor, data, metadata, output, samples, prefix):
         ax = axes.ravel()
         rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
         img = cv2.imread(dic["file_name"])
-        predictions = predictor(rgba)
+        try:
+            predictions = predictor(rgba)
+        except:
+            predictions = predictor(img)
         visualizer = Visualizer(img, metadata=metadata)
         vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
         ax[0].set_title('Prediction')
@@ -36,6 +39,7 @@ def visualize_comparison(predictor, data, metadata, output, samples, prefix):
         ax[1].imshow(vis2)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, prefix + os.path.basename(dic["file_name"])))
+        plt.close()
 
 
 def visualize_many(predictor, data, metadata, output, samples, prefix):
@@ -49,11 +53,11 @@ def visualize_many(predictor, data, metadata, output, samples, prefix):
             visualizer = Visualizer(img, metadata=metadata)
             vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
             title = prefix + os.path.basename(dic["file_name"])
-            ax.set_title(title)
             ax.set_axis_off()
             ax.imshow(vis)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, title))
+        plt.close()
 
 
 def visualize_single(predictor, data, metadata, output, samples, prefix):
@@ -70,6 +74,7 @@ def visualize_single(predictor, data, metadata, output, samples, prefix):
         plt.imshow(vis)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, title))
+        plt.close()
 
 
 def setup(args):
@@ -77,9 +82,9 @@ def setup(args):
     add_deepent_config(cfg)
     cfg.merge_from_file(args.config_file)
     opts = args.opts
-    # random sampling
-    #opts.append("SEED")
-    #opts.append(-1)
+    if args.seed:
+        opts.append("SEED")
+        opts.append(-1)
     cfg.merge_from_list(opts)
     cfg.MODEL.WEIGHTS = args.model 
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold 
@@ -89,31 +94,34 @@ def setup(args):
 
 
 def main(args):
+    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs/')
     cfg = setup(args)
     predictor = RGBDPredictor(cfg)
-    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs/')
-    data = list(DatasetCatalog.get(args.dataset))
-    metadata = MetadataCatalog.get(args.dataset)
-    output = os.path.join(os.path.realpath(cfg.OUTPUT_DIR if args.output is None else args.output), args.dataset)
-    prefix = os.path.basename(args.model).split('.')[0] + '_thresh' + str(args.threshold) + '_'
-    if args.type == 'single':
-        return visualize_single(predictor, data, metadata, output, args.samples, prefix)
-    elif args.type == 'comparison':
-        return visualize_comparison(predictor, data, metadata, output, args.samples, prefix)
-    return visualize_many(predictor, data, metadata, output, args.samples, prefix)
+    for dataset in args.dataset:
+        data = list(DatasetCatalog.get(dataset))
+        metadata = MetadataCatalog.get(dataset)
+        output = os.path.join(os.path.realpath(cfg.OUTPUT_DIR if args.output is None else args.output), dataset)
+        prefix = os.path.basename(args.model).split('.')[0] + '_thresh' + str(args.threshold) + '_'
+        if args.type == 'single':
+            visualize_single(predictor, data, metadata, output, args.samples, prefix)
+        elif args.type == 'comparison':
+            visualize_comparison(predictor, data, metadata, output, args.samples, prefix)
+        else:
+            visualize_many(predictor, data, metadata, output, args.samples, prefix)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="A script that visualizes instance predictions."
     )
-    parser.add_argument("--model", required=True, help="Path to model weights")
+    parser.add_argument("--model", required=True, type=str, help="Path to model weights")
     parser.add_argument("--config-file", required=True, help="Path to config")
-    parser.add_argument("--dataset", help="name of the dataset", type=str, default="CPT2a-n_test")
+    parser.add_argument("--dataset", help="name of the dataset", type=str, nargs='+', default="CPT2a-n_test")
     parser.add_argument("--threshold", default=0.5, type=float, help="confidence threshold")
     parser.add_argument("--opts", default=[], type=list, help="additional options")
     parser.add_argument("--samples", default=1, type=int, help="number of sample visualizations to produce")
     parser.add_argument("--output", default=None, type=str, help="output directory")
+    parser.add_argument("--seed", default=False, type=bool, help="use random random seed")
     parser.add_argument("--type", default='many', type=str, choices=['single', 'many', 'comparison'],
                         help="type of plot, single, comparison and many")
     args = parser.parse_args()

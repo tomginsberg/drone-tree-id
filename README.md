@@ -81,8 +81,9 @@ To create a 6x2 sample visualization of model inference, run the following with 
 * `--threshold`: confidence threshold
 * `--samples`: number of sample visualizations to produce
 * `--output`: path to store visualizations
+* `--seed`: use random seed or config seed
 ```
-python tools/vis.py --threshold 0.5 --config-file configs/deepent_rcnn_R_50_FPN.yaml --model output/baseline_17_01_2019/model_0019999.pth --samples 1 --dataset SAL_test --output output/baseline_17_01_2019/vis/ --type comparison
+python tools/vis.py --threshold 0.5 --config-file configs/deepent_fuse_rcnn_R_50_FPN.yaml --samples 5 --output output/baseline_fuse_07_02_2020/vis --type comparison --dataset CPT2a-n_test CPT2a-n_train  Kelowna_train Kelowna_test AMECT9_train AMECT9_test SALCT1_train SALCT1_test CPT2b_train CPT2b_test --model output/baseline_fuse_07_02_2020/model_0049999.pth
 ```
 and then transfer
 ```
