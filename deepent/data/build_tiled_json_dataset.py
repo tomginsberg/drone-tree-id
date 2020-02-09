@@ -340,11 +340,9 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
 
 if __name__ == '__main__':
     if glob('RGBD-Tree-Segs'):
-        print('Your on Tom\'s Mac')
         dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=True, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     else:
-        print('Your on AWS')
         dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     dt.tile_dataset()

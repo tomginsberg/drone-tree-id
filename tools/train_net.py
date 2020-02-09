@@ -1,14 +1,20 @@
 import os
 
+import wandb
+
 import detectron2.utils.comm as comm
+from deepent.config import add_deepent_config
+from deepent.data.register_datasets import register_datasets
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
 from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_results
+from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 from detectron2.utils.logger import setup_logger
+from tools.wandb_writer import WandbWriter
 
-from deepent.config import add_deepent_config
-from deepent.data.register_datasets import register_datasets
+wandb.init(project="forest")
+
 
 class Trainer(DefaultTrainer):
     @classmethod
@@ -16,6 +22,12 @@ class Trainer(DefaultTrainer):
         output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
         evaluators = [COCOEvaluator(dataset_name, cfg, False, output_folder)]
         return DatasetEvaluators(evaluators)
+
+    def build_writers(self):
+        return [CommonMetricPrinter(self.max_iter),
+                JSONWriter(os.path.join(self.cfg.OUTPUT_DIR, "metrics.json")),
+                WandbWriter()
+                ]
 
 
 def setup(args):

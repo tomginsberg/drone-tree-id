@@ -1,37 +1,37 @@
-import numpy as np
+from typing import List, Optional
 
+import numpy as np
 from torch import nn
 
-from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
+from deepent.modelling.backbone.depth_encoder import DepthEncoder
+from deepent.modelling.backbone.depth_encoder import build_depth_encoder_backbone
 from detectron2.layers import ShapeSpec, FrozenBatchNorm2d
 from detectron2.modeling import ResNet, Backbone, ResNetBlockBase, BACKBONE_REGISTRY, make_stage
 from detectron2.modeling.backbone.fpn import LastLevelMaxPool, FPN
-
-from deepent.modelling.backbone.depth_encoder import build_depth_encoder_backbone
+from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
 
 __all__ = ["build_deepent_fpn_backbone"]
 
 
 class FusedResNet(Backbone):
-    def __init__(self, stem, stages, num_classes=None, depth_encoder=None, in_features=None, out_features=None):
+    def __init__(self, stem: BasicStem, stages: List[List[ResNetBlockBase]], depth_encoder: DepthEncoder,
+                 in_features: Optional[List[str]] = None, out_features: Optional[List[str]] = None):
         """
         Args:
             stem (nn.Module): a stem module
             stages (list[list[ResNetBlock]]): several (typically 4) stages,
                 each contains multiple :class:`ResNetBlockBase`.
-            num_classes (None or int): if None, will not perform classification.
             out_features (list[str]): name of the layers whose outputs should
                 be returned in forward. Can be anything in "stem", "linear", or "res2" ...
                 If None, will return the output of the last layer.
         """
         super(FusedResNet, self).__init__()
-        #if depth_encoder is not None:
+        # if depth_encoder is not None:
         #    assert isinstance(depth_encoder, Backbone)
 
         self.depth_encoder = depth_encoder
         self.in_features = in_features
         self.stem = stem
-        self.num_classes = num_classes
 
         current_stride = self.stem.stride
         self._out_feature_strides = {"stem": current_stride}
@@ -50,16 +50,6 @@ class FusedResNet(Backbone):
                 current_stride * np.prod([k.stride for k in blocks])
             )
             self._out_feature_channels[name] = blocks[-1].out_channels
-
-        if num_classes is not None:
-            self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-            self.linear = nn.Linear(curr_channels, num_classes)
-
-            # Sec 5.1 in "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour":
-            # "The 1000-way fully-connected layer is initialized by
-            # drawing weights from a zero-mean Gaussian with standard deviation of 0.01."
-            nn.init.normal_(self.linear.weight, std=0.01)
-            name = "linear"
 
         if out_features is None:
             out_features = [name]
@@ -88,11 +78,7 @@ class FusedResNet(Backbone):
                 x = x + d.pop(0)
             if name in self._out_features:
                 outputs[name] = x
-        if self.num_classes is not None:
-            x = self.avgpool(x)
-            x = self.linear(x)
-            if "linear" in self._out_features:
-                outputs["linear"] = x
+
         return outputs
 
     def output_shape(self):

@@ -12,6 +12,7 @@ def register_datasets(dataset_path: str):
     def data_getter(data):
         def f():
             return data
+
         return f
 
     with open(os.path.join(dataset_path, 'classes.json'), 'r') as f:
@@ -35,4 +36,7 @@ def register_datasets(dataset_path: str):
 
 
 if __name__ == '__main__':
-    register_datasets(dataset_path='/home/ubuntu/RGBD-Tree-Segs')
+    try:
+        register_datasets(dataset_path='/home/ubuntu/RGBD-Tree-Segs')
+    except FileNotFoundError:
+        register_datasets(dataset_path='RGBD-Tree-Segs')
