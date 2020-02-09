@@ -9,54 +9,64 @@ from deepent.config import add_deepent_config
 from deepent.data.register_datasets import register_datasets
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog, DatasetCatalog
-from detectron2.engine import DefaultPredictor, default_setup
+from detectron2.engine import default_setup
 from detectron2.utils.visualizer import Visualizer, ColorMode
 
+from deepent.data.register_datasets import register_datasets
+from deepent.config import add_deepent_config
+from tools.predictor import RGBDPredictor
 
 def visualize_comparison(predictor, data, metadata, output, samples, prefix):
     dicts = random.sample(data, samples)
     for dic in dicts:
         fig, axes = plt.subplots(1, 2)
         ax = axes.ravel()
+        rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
         img = cv2.imread(dic["file_name"])
-        predictions = predictor(img)
-        visualizer = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
+        predictions = predictor(rgba)
+        visualizer = Visualizer(img, metadata=metadata)
         vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
         ax[0].set_title('Prediction')
+        ax[0].set_axis_off()
         ax[0].imshow(vis)
-        visualizer2 = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
-        vis2 = visualizer.draw_dataset_dict(dic).get_image()
+        visualizer2 = Visualizer(img, metadata=metadata)
+        vis2 = visualizer2.draw_dataset_dict(dic).get_image()
         ax[1].set_title('Annotation')
+        ax[1].set_axis_off()
         ax[1].imshow(vis2)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, prefix + os.path.basename(dic["file_name"])))
 
 
 def visualize_many(predictor, data, metadata, output, samples, prefix):
-    for _ in range(samples):
-        fig, axes = plt.subplots(2, 6)
+    dicts = random.sample(data, samples)
+    for dic in dicts:
+        fig, axes = plt.subplots(2,6)
         for ax in axes.ravel():
-            dic = random.sample(data, 1)[0]
             img = cv2.imread(dic["file_name"])
-            predictions = predictor(img)
-            visualizer = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
+            rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
+            predictions = predictor(rgba)
+            visualizer = Visualizer(img, metadata=metadata)
             vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
             title = prefix + os.path.basename(dic["file_name"])
             ax.set_title(title)
+            ax.set_axis_off()
             ax.imshow(vis)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, title))
 
 
-def visualize_single(predictor, data, metadata, output, sample, prefix):
-    for _ in range(samples):
-        dic = random.sample(data, 1)[0]
+def visualize_single(predictor, data, metadata, output, samples, prefix):
+    dicts = random.sample(data, samples)
+    for dic in dicts:
+        rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
         img = cv2.imread(dic["file_name"])
-        predictions = predictor(img)
-        visualizer = Visualizer(img, metadata=metadata, instance_mode=ColorMode.IMAGE_BW)
+        predictions = predictor(rgba)
+        visualizer = Visualizer(img, metadata=metadata)
         vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
         title = prefix + os.path.basename(dic["file_name"])
         plt.title(title)
+        plt.axis('off')
         plt.imshow(vis)
         os.makedirs(output, exist_ok=True)
         plt.savefig(os.path.join(output, title))
@@ -66,9 +76,13 @@ def setup(args):
     cfg = get_cfg()
     add_deepent_config(cfg)
     cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
-    cfg.MODEL.WEIGHTS = args.model
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold
+    opts = args.opts
+    # random sampling
+    #opts.append("SEED")
+    #opts.append(-1)
+    cfg.merge_from_list(opts)
+    cfg.MODEL.WEIGHTS = args.model 
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold 
     cfg.freeze()
     default_setup(cfg, args)
     return cfg
@@ -76,7 +90,7 @@ def setup(args):
 
 def main(args):
     cfg = setup(args)
-    predictor = DefaultPredictor(cfg)
+    predictor = RGBDPredictor(cfg)
     register_datasets(f'/home/ubuntu/RGBD-Tree-Segs/')
     data = list(DatasetCatalog.get(args.dataset))
     metadata = MetadataCatalog.get(args.dataset)

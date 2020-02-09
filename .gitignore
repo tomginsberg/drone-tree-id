@@ -143,3 +143,4 @@ notebooks/shapefile.ipynb
 models/
 nohup.out
 .idea
+wandb/
