@@ -1,5 +1,5 @@
 SEED:
-  24
+  45072973
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   BACKBONE:
@@ -32,10 +32,10 @@ MODEL:
     NUM_CONV: 4
     POOLER_RESOLUTION: 14
 DATASETS:
-  TRAIN: ("CPT2a-n_train", "CPT2b_train",)
-  TEST: ("CPT2a-n_test", "CPT2b_test",)
-  #  TRAIN: ("Kelowna_train", "CPT2a-n_train", "CPT2b_train", "SALCT1_train", "AMECT9_train",)
-  #  TEST: ("Kelowna_test", "CPT2a-n_test", "CPT2b_test", "SALCT1_test", "AMECT9_test",)
+  #TRAIN: ("CPT2a-n_train", "CPT2b_train",)
+  #TEST: ("CPT2a-n_test", "CPT2b_test",)
+    TRAIN: ("Kelowna_train", "CPT2a-n_train", "CPT2b_train", "SALCT1_train", "AMECT9_train",)
+    TEST: ("Kelowna_test", "CPT2a-n_test", "CPT2b_test", "SALCT1_test", "AMECT9_test",)
 SOLVER:
   IMS_PER_BATCH: 4 #16
   BASE_LR: 0.005

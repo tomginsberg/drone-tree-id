@@ -18,8 +18,8 @@ if __name__ == '__main__':
     if args.type == 'images':
         path = os.path.join(args.dest, 'vis', '**', '*')
         images = glob(path)
-        for image in path:
-            wandb.log({os.path.basename(image): wandb.Image(cv2.imread(image)[:, :, ::-1])})
+        for image in images:
+            wandb.log({'/'.join(image.split('/')[-2:]): wandb.Image(cv2.imread(image)[:, :, ::-1])})
 
     elif args.type == 'metrics':
         metrics = os.path.join(args.dest, 'metrics.json')
