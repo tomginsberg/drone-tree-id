@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     args = default_argument_parser().parse_args()
     if args.eval_only:
-        wandb.init(project="forest", name='/'.join(args.opts[-1].split('/')[-2:]))
+        wandb.init(project="forest", name='_'.join(args.opts[-1].split('/')[-2:])+'_eval')
     wandb.init(project="forest")
 
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))
