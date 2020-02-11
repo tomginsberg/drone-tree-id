@@ -13,8 +13,6 @@ from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 from detectron2.utils.logger import setup_logger
 from tools.wandb_writer import WandbWriter
 
-wandb.init(project="forest")
-
 
 class Trainer(DefaultTrainer):
     @classmethod
@@ -24,6 +22,10 @@ class Trainer(DefaultTrainer):
         return DatasetEvaluators(evaluators)
 
     def build_writers(self):
+        if args.eval_only:
+            return [CommonMetricPrinter(self.max_iter),
+                    JSONWriter(os.path.join(self.cfg.OUTPUT_DIR, "metrics.json"))
+                    ]
         return [CommonMetricPrinter(self.max_iter),
                 JSONWriter(os.path.join(self.cfg.OUTPUT_DIR, "metrics.json")),
                 WandbWriter()
@@ -63,8 +65,11 @@ if __name__ == "__main__":
     try:
         register_datasets('/home/ubuntu/RGBD-Tree-Segs')
     except FileNotFoundError:
-        print(f'You\'re on Tom\'s Mac...')
         register_datasets('RGBD-Tree-Segs')
 
     args = default_argument_parser().parse_args()
+
+    if not args.eval_only:
+        wandb.init(project="forest")
+
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))
