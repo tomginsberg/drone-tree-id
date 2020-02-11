@@ -142,7 +142,7 @@ class DataTiler:
                                     category_id=self.classes[class_name]
                                 )
                             )
-        print(f'{bad_segments} invalid segments filtered')
+        print(f'{bad_segments} of {len(shape_recs)} segments filtered')
         return annotations
 
     def tile_dataset(self, tile_filtering_function=lambda tile, annotation: True,
@@ -230,7 +230,7 @@ class DataTiler:
                     if tile_number % 200 == 0:
                         print(f'Tile # {tile_number} of {num_tiles} created for {dataset_name}')
 
-            print(f'{dataset_name} complete. {bad_tiles} invalid tiles removed.')
+            print(f'{dataset_name} complete. {bad_tiles} of {num_tiles} tiles removed.')
 
             for train_test, rec in zip(['train', 'test'], [train_record, test_record]):
                 with open(os.path.join(self.output_dir, train_test, dataset_name, 'segs.json'), 'w') as f:
@@ -392,9 +392,9 @@ if __name__ == '__main__':
         dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=True, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     else:
-        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=False,
+        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
                        tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
-    dt.tile_dataset(tile_filtering_function=if_all([remove_no_annotations, remove_small_segment_coverage(thresh=50)]),
-                    bbox_filtering_function=remove_small_bboxes(1000))
-    # dt.cleanup()
+    dt.tile_dataset(
+        tile_filtering_function=lambda tile, an: remove_no_annotations(tile, an) and remove_small_segment_coverage(
+            thresh=.5)(tile, an), bbox_filtering_function=remove_small_bboxes(1000))
