@@ -4,21 +4,25 @@ import random
 
 import cv2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from deepent.config import add_deepent_config
 from deepent.data.register_datasets import register_datasets
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.engine import default_setup
-from detectron2.utils.visualizer import Visualizer, ColorMode
-
-from deepent.data.register_datasets import register_datasets
-from deepent.config import add_deepent_config
+from detectron2.utils.visualizer import Visualizer
 from tools.predictor import RGBDPredictor
 
-def visualize_comparison(predictor, data, metadata, output, samples, prefix):
-    dicts = random.sample(data, samples)
-    for dic in dicts:
+
+def no_annotations_data_filter(dicts):
+    return list(filter(lambda x: x['annotations'] > 0, dicts))[:len(dicts) // 2]
+
+
+def visualize_comparison(predictor, data, metadata, output, samples, prefix,
+                         data_filtering_function=lambda x: x[:len(x // 2)]):
+    dicts = data_filtering_function(random.sample(data, 2 * samples))
+    for dic in tqdm(dicts):
         fig, axes = plt.subplots(1, 2)
         ax = axes.ravel()
         rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
@@ -45,7 +49,7 @@ def visualize_comparison(predictor, data, metadata, output, samples, prefix):
 def visualize_many(predictor, data, metadata, output, samples, prefix):
     dicts = random.sample(data, samples)
     for dic in dicts:
-        fig, axes = plt.subplots(2,6)
+        fig, axes = plt.subplots(2, 6)
         for ax in axes.ravel():
             img = cv2.imread(dic["file_name"])
             rgba = cv2.imread(dic["file_name"], cv2.IMREAD_UNCHANGED)
@@ -86,8 +90,8 @@ def setup(args):
         opts.append("SEED")
         opts.append(-1)
     cfg.merge_from_list(opts)
-    cfg.MODEL.WEIGHTS = args.model 
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold 
+    cfg.MODEL.WEIGHTS = args.model
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold
     cfg.freeze()
     default_setup(cfg, args)
     return cfg
@@ -105,7 +109,8 @@ def main(args):
         if args.type == 'single':
             visualize_single(predictor, data, metadata, output, args.samples, prefix)
         elif args.type == 'comparison':
-            visualize_comparison(predictor, data, metadata, output, args.samples, prefix)
+            visualize_comparison(predictor, data, metadata, output, args.samples, prefix,
+                                 data_filtering_function=no_annotations_data_filter)
         else:
             visualize_many(predictor, data, metadata, output, args.samples, prefix)
 
