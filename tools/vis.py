@@ -16,7 +16,7 @@ from tools.predictor import RGBDPredictor
 
 
 def no_annotations_data_filter(dicts):
-    return list(filter(lambda x: x['annotations'] > 0, dicts))[:len(dicts) // 2]
+    return list(filter(lambda x: len(x['annotations']) > 0, dicts))[:len(dicts) // 2]
 
 
 def visualize_comparison(predictor, data, metadata, output, samples, prefix,
