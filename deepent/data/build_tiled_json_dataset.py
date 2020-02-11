@@ -50,7 +50,8 @@ class DataTiler:
             except FileNotFoundError:
                 print('No directory to cleanup. Proceeding')
 
-    def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray) -> List[List[Dict[str, any]]]:
+    def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray,
+                       bbox_filtering_function) -> List[List[Dict[str, any]]]:
         """
 
         :param dataset_directory:
@@ -94,13 +95,15 @@ class DataTiler:
         x_tiles = ceil(img_w / self.dx)
         num_tiles = x_tiles * ceil(img_h / self.dy)
         annotations = [[] for _ in range(num_tiles)]
-
+        bad_segments = 0
         print(f'Tiling Shapes for {os.path.basename(dataset_directory)}')
         for shape_rec in tqdm(shape_recs):
             shp = shape_rec.shape
             if shp.shapeType == 5:  # 5 - polygon
 
                 class_name = shape_rec.record.segClass
+                if class_name[-1] == '2':
+                    class_name = class_name[:-1]
                 # Update class dict
                 if class_name not in self.classes:
                     self.classes[class_name] = len(self.classes)
@@ -108,10 +111,15 @@ class DataTiler:
                 # transform polygon and bounding into image coordinate system
                 rescaled_poly = [[rescale_x(x), rescale_y(y)] for x, y in fix_polygon_tail(shp.points)]
                 if len(rescaled_poly) < 3:
+                    bad_segments += 1
                     continue
 
                 shape_bbox = [rescale_x(shp.bbox[0]), rescale_y(shp.bbox[3]),
                               rescale_x(shp.bbox[2]), rescale_y(shp.bbox[1])]
+
+                if not bbox_filtering_function(shape_bbox):
+                    bad_segments += 1
+                    continue
 
                 x_min, y_min, x_max, y_max = shape_bbox
                 x_pos, y_pos = (x_min // self.dx), (y_min // self.dy)
@@ -134,11 +142,14 @@ class DataTiler:
                                     category_id=self.classes[class_name]
                                 )
                             )
+        print(f'{bad_segments} invalid segments filtered')
         return annotations
 
-    def tile_dataset(self, tile_filtering_function=lambda tile, annotation: True, train_limit: int = 80):
+    def tile_dataset(self, tile_filtering_function=lambda tile, annotation: True,
+                     bbox_filtering_function=lambda bbox: True, train_limit: int = 80):
         """
 
+        :param bbox_filtering_function:
         :param tile_filtering_function:
         :param train_limit:
         :raises FileNotFoundError: if a single file matching *ortho.tif cannot be found in the dataset path
@@ -175,7 +186,8 @@ class DataTiler:
             assert (chm.shape[:2] == ortho.shape[:2]), 'Ortho and CHM are different shapes'
             assert ortho.shape[-1] == 4, 'Ortho should contain a 4th channel'
 
-            annotations = self._tile_segments(dataset_directory, ortho_name, ortho)
+            annotations = self._tile_segments(dataset_directory=dataset_directory, ortho_name=ortho_name, img=ortho,
+                                              bbox_filtering_function=bbox_filtering_function)
 
             img_h, img_w = ortho.shape[:2]
             tile_number, train_id, test_id = 0, 0, 0
@@ -218,7 +230,7 @@ class DataTiler:
                     if tile_number % 200 == 0:
                         print(f'Tile # {tile_number} of {num_tiles} created for {dataset_name}')
 
-            print(f'{dataset_name} complete. {bad_tiles} bad tiles removed.')
+            print(f'{dataset_name} complete. {bad_tiles} invalid tiles removed.')
 
             for train_test, rec in zip(['train', 'test'], [train_record, test_record]):
                 with open(os.path.join(self.output_dir, train_test, dataset_name, 'segs.json'), 'w') as f:
@@ -338,12 +350,51 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
     }
 
 
+def remove_no_annotations(tile, an):
+    if len(an) > 0:
+        return True
+    return False
+
+
+def remove_small_segment_coverage(thresh):
+    def f(tile, an):
+        return (lambda x: ((np.max(x[2]) - np.min(x[0])) * (np.max(x[3]) - np.min(x[1]))) / (640 ** 2))(
+            np.array([x['bbox'] for x in an]).transpose()) > thresh
+
+    return f
+
+
+def if_all(funcs):
+    """
+    Short circuit evaluation to create a function that is the and of many functions
+    :param funcs:
+    :return: bool
+    """
+
+    def f(tile, annotation):
+        for func in funcs:
+            if not func(tile, annotation):
+                return False
+        return True
+
+    return f
+
+
+def remove_small_bboxes(thresh):
+    def f(bbox):
+        return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) > thresh
+
+    return f
+
+
 if __name__ == '__main__':
     if glob('RGBD-Tree-Segs'):
         dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=True, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     else:
-        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs', cleanup_on_init=False, tile_width=640,
+        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=False,
+                       tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
-    dt.tile_dataset()
+    dt.tile_dataset(tile_filtering_function=if_all([remove_no_annotations, remove_small_segment_coverage(thresh=50)]),
+                    bbox_filtering_function=remove_small_bboxes(1000))
     # dt.cleanup()
