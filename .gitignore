@@ -144,3 +144,4 @@ models/
 nohup.out
 .idea
 wandb/
+*.out
