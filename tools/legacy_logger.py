@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     wandb.init(project='forest')
 
-    for line in f.split('\n')[:-1]:
+    for line in raw_data.split('\n')[:-1]:
         obj = json.loads(line)
         itr = obj['iteration']
         for k, v in obj.items():
