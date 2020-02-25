@@ -98,7 +98,7 @@ def setup(args):
 
 
 def main(args):
-    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs/')
+    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
     cfg = setup(args)
     predictor = RGBDPredictor(cfg)
     for dataset in args.dataset:
