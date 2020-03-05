@@ -88,7 +88,7 @@ def setup(args):
     opts = args.opts
     if args.seed:
         opts.append("SEED")
-        opts.append(-1)
+        opts.append(args.seed)
     cfg.merge_from_list(opts)
     cfg.MODEL.WEIGHTS = args.model
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.threshold
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--opts", default=[], type=list, help="additional options")
     parser.add_argument("--samples", default=1, type=int, help="number of sample visualizations to produce")
     parser.add_argument("--output", default=None, type=str, help="output directory")
-    parser.add_argument("--seed", default=False, type=bool, help="use random random seed")
+    parser.add_argument("--seed", default=-1, type=int, help="use seed, -1 for auto generated seed")
     parser.add_argument("--type", default='many', type=str, choices=['single', 'many', 'comparison'],
                         help="type of plot, single, comparison and many")
     args = parser.parse_args()
