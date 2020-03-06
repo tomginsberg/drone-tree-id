@@ -21,7 +21,7 @@ np.random.seed(42)
 class DataTiler:
     def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
-                 cleanup_on_init: bool = False, compute_means=False):
+                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: str = '*'):
         """
         :param input_dir:
         :param output_dir:
@@ -36,7 +36,7 @@ class DataTiler:
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
 
-        self.dataset_input_paths = glob(os.path.join(input_dir, '*'))
+        self.dataset_input_paths = glob(os.path.join(input_dir, dataset_regex))
         self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
@@ -429,7 +429,7 @@ if __name__ == '__main__':
     else:
         dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
                        tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320)
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
     dt.tile_dataset(
         annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage(
             thresh=.5)(an), bbox_filtering_function=remove_small_bboxes(1000), no_train=True)

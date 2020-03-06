@@ -1,7 +1,9 @@
-import shapefile
+import os
 from glob import glob
-import numpy as np
+
 import cv2
+import numpy as np
+import shapefile
 
 from detectron2.utils.visualizer import GenericMask
 
@@ -15,23 +17,23 @@ class Untiler:
 
     def __call__(self, *args, **kwargs):
 
-        tiles = glob(self._path_to_tiles, "*.png")
+        tiles = glob(os.path.join(self._path_to_tiles, "*.png"))
 
         with shapefile.Writer(self.output) as shp:
             shp.shapeType = 5  # set shapetype to polygons
             shp.field('treeID', 'N', 24, 15)
             shp.field('polyArea', 'N', 24, 15)
             shp.field('segClass', 'C', 80, 0)
-
+        x_scale, y_scale = load_scales()
         for tile in tiles:
             img = cv2.imread(tile)
             width, height = img.shape[1], img.shape[0]
             # TODO: implement
-            x_scale, y_scale, x_shift, y_shift = load_transform(tile)
+            x_shift, y_shift = load_transform(tile)
             predictions = self._predictor(img)
             predictions = predictions["instances"].to("cpu")
             if predictions.has("pred_masks"):
-                for (polygon, area, cls) in _format_predictions(predictions, height, width):
+                for (polygon, area, cls) in format_predictions(predictions, height, width):
                     shp.poly(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                     # TODO: is class the id number or the string????????
                     shp.record(self._tree_id, area * x_scale * y_scale, cls)
@@ -62,3 +64,4 @@ def format_predictions(predictions, height, width):
     assert (len(polygons) == len(classes) == len(areas))
 
     return zip(polygons, areas, classes)
+
