@@ -21,7 +21,7 @@ np.random.seed(42)
 class DataTiler:
     def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
-                 cleanup_on_init: bool = False):
+                 cleanup_on_init: bool = False, compute_means=False):
         """
         :param input_dir:
         :param output_dir:
@@ -41,8 +41,10 @@ class DataTiler:
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
         self.classes = {}
-        self.ortho_means = []
-        self.chm_means = []
+        self.compute_means = compute_means
+        if compute_means:
+            self.ortho_means = []
+            self.chm_means = []
 
         if cleanup_on_init:
             try:
@@ -50,24 +52,21 @@ class DataTiler:
             except FileNotFoundError:
                 print('No directory to cleanup. Proceeding')
 
-    def _tile_segments(self, dataset_directory: str, ortho_name: str, img: np.ndarray,
+    def _tile_segments(self, dataset_directory: str, ds: rasterio.DatasetReader,
                        bbox_filtering_function) -> List[List[Dict[str, any]]]:
         """
 
         :param dataset_directory:
-        :param ortho_name:
-        :param img:
+        :param ds:
         :return: annotations: List[List[Dict]]
         """
         # Use rasterio to compute geometric transformation parameters
-        ds = rasterio.open(ortho_name, 'r')
         ulx, xres, _, uly, _, yres = ds.get_transform()
 
         # Size of Ortho in geometric scale
-        orthox = xres * ds.width
-        orthoy = yres * ds.height
-
-        img_h, img_w = img.shape[:2]
+        img_h, img_w = ds.height, ds.width
+        orthox = xres * img_w
+        orthoy = yres * img_h
 
         # Locate ShapeFile in datasets/dataset/Segments/ directory
         shapefile_name = glob(os.path.join(dataset_directory, 'Segments', '*'))[0][:-4]
@@ -145,16 +144,21 @@ class DataTiler:
         print(f'{bad_segments} of {len(shape_recs)} segments filtered')
         return annotations
 
-    def tile_dataset(self, tile_filtering_function=lambda tile, annotation: True,
-                     bbox_filtering_function=lambda bbox: True, train_limit: int = 80):
+    def tile_dataset(self, tile_filtering_function=lambda tile: True,
+                     annotation_filtering_function=lambda anon: True,
+                     bbox_filtering_function=lambda bbox: True, train_limit: int = 80, no_train: bool = False):
         """
 
+        :param annotation_filtering_function:
+        :param no_train:
         :param bbox_filtering_function:
         :param tile_filtering_function:
         :param train_limit:
         :raises FileNotFoundError: if a single file matching *ortho.tif cannot be found in the dataset path
         """
-        self.build_output_dir_structure()
+        if no_train:
+            train_limit = 100
+        self.build_output_dir_structure(no_train)
         for dataset_directory, dataset_name in zip(self.dataset_input_paths, self.dataset_names):
             ortho_name = glob(os.path.join(dataset_directory, '*ortho.tif'))
             if len(ortho_name) != 1:
@@ -168,9 +172,15 @@ class DataTiler:
 
             print(f'Reading Ortho: {ortho_name}')
             ortho = imread(ortho_name)
-            mean = [np.mean(ortho[:, :, i]) for i in range(3)]
-            print(f'Pixel Mean is {mean}')
-            self.ortho_means.append(mean)
+
+            ds = rasterio.open(ortho_name, 'r')
+            # Use rasterio to compute geometric transformation parameters
+            x_geo_ref, xres, _, y_geo_ref, _, yres = ds.get_transform()
+
+            if self.compute_means:
+                mean = [np.mean(ortho[:, :, i]) for i in range(3)]
+                print(f'Pixel Mean is {mean}')
+                self.ortho_means.append(mean)
 
             print(f'Reading CHM: {chm_name}')
             chm = imread(chm_name)
@@ -179,50 +189,58 @@ class DataTiler:
             chm = np.where(chm == -np.inf, 0, chm)
             print('Rescaling to [0, 255]')
             chm = (255 * (chm - np.min(chm)) / np.max(chm)).astype(ortho.dtype)
-            mean = np.mean(chm)
-            print(f'Pixel Mean is {mean}')
-            self.chm_means.append(mean)
+
+            if self.compute_means:
+                mean = np.mean(chm)
+                print(f'Pixel Mean is {mean}')
+                self.chm_means.append(mean)
 
             assert (chm.shape[:2] == ortho.shape[:2]), 'Ortho and CHM are different shapes'
             assert ortho.shape[-1] == 4, 'Ortho should contain a 4th channel'
 
-            annotations = self._tile_segments(dataset_directory=dataset_directory, ortho_name=ortho_name, img=ortho,
-                                              bbox_filtering_function=bbox_filtering_function)
+            if not no_train:
+                annotations = self._tile_segments(dataset_directory=dataset_directory,
+                                                  bbox_filtering_function=bbox_filtering_function, ds=ds)
 
             img_h, img_w = ortho.shape[:2]
-            tile_number, train_id, test_id = 0, 0, 0
-            train_record, test_record = [], []
+            tile_number, train_id, test_id, tile_id = 0, 0, 0, 0
+            train_record, test_record, tile_record = [], [], []
+            offsets = {}
             num_tiles = ceil(img_w / self.dx) * ceil(img_h / self.dy)
             bad_tiles = 0
-
             for y in range(0, img_h, self.dy):
                 for x in range(0, img_w, self.dx):
-                    train_test = np.random.randint(0, 100)
                     x_c = x + self.tile_width if x + self.tile_width <= img_w else img_w
                     y_c = y + self.tile_height if y + self.tile_height <= img_h else img_h
 
                     tile = ortho[y:y_c, x:x_c]
                     tile[:, :, -1] = chm[y:y_c, x:x_c]
+                    make_dir = lambda name, id_: os.path.join(self.output_dir, name, dataset_name,
+                                                              f'tile_{id_}.png')
+                    if tile_filtering_function(tile):
+                        if no_train:
+                            image_output_dir = make_dir('tiles', tile_id)
+                            tile_id += 1
+                            offsets[image_output_dir] = (x_geo_ref + x * xres, y_geo_ref + y * yres)
+                            cv2.imwrite(image_output_dir, tile)
+                        elif annotation_filtering_function(annotations[tile_number]):
+                            annotation = lambda image_output_dir: {'file_name': image_output_dir,
+                                                                   'image_id': tile_number,
+                                                                   'width': (x_c - x),
+                                                                   'height': (y_c - y),
+                                                                   'annotations': annotations[tile_number]}
+                            if np.random.randint(0, 100) <= train_limit:
+                                image_output_dir = make_dir('train', train_id)
+                                train_id += 1
+                                train_record.append(annotation(image_output_dir))
+                            else:
+                                image_output_dir = make_dir('test', test_id)
+                                test_id += 1
+                                test_record.append(annotation(image_output_dir))
+                            cv2.imwrite(image_output_dir, tile)
 
-                    if tile_filtering_function(tile, annotations[tile_number]):
-                        if train_test <= train_limit:
-                            image_output_dir = os.path.join(self.output_dir, 'train', dataset_name,
-                                                            f'tile_{train_id}.png')
-                            train_id += 1
-                            train_record.append(
-                                {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
-                                 'height': (y_c - y),
-                                 'annotations': annotations[tile_number]})
                         else:
-                            image_output_dir = os.path.join(self.output_dir, 'test', dataset_name,
-                                                            f'tile_{test_id}.png')
-                            test_id += 1
-                            test_record.append(
-                                {'file_name': image_output_dir, 'image_id': tile_number, 'width': (x_c - x),
-                                 'height': (y_c - y),
-                                 'annotations': annotations[tile_number]})
-
-                        cv2.imwrite(image_output_dir, tile)
+                            bad_tiles += 1
                     else:
                         bad_tiles += 1
 
@@ -232,16 +250,24 @@ class DataTiler:
 
             print(f'{dataset_name} complete. {bad_tiles} of {num_tiles} tiles removed.')
 
-            for train_test, rec in zip(['train', 'test'], [train_record, test_record]):
-                with open(os.path.join(self.output_dir, train_test, dataset_name, 'segs.json'), 'w') as f:
-                    f.write(json.dumps(rec))
+            offsets['transform'] = (xres, yres)
 
-        print(f'Writing Classes f{self.classes}')
-        with open(os.path.join(self.output_dir, 'classes.json'), 'w') as f:
-            f.write(json.dumps(self.classes))
-        print(f'Means {{CHM: {np.mean(self.chm_means)}, Ortho: f{np.mean(self.ortho_means, axis=0)}}}')
+            if no_train:
+                with open(os.path.join(self.output_dir, 'tiles', dataset_name, 'offsets.json'), 'w') as f:
+                    f.write(json.dumps(offsets))
+            else:
+                for root, rec in zip(['train', 'test'], [train_record, test_record]):
+                    with open(os.path.join(self.output_dir, root, dataset_name, 'segs.json'), 'w') as f:
+                        f.write(json.dumps(rec))
 
-    def build_output_dir_structure(self):
+                print(f'Writing Classes {self.classes}')
+                with open(os.path.join(self.output_dir, 'classes.json'), 'w') as f:
+                    f.write(json.dumps(self.classes))
+
+        if self.compute_means:
+            print(f'Means {{CHM: {np.mean(self.chm_means)}, Ortho: f{np.mean(self.ortho_means, axis=0)}}}')
+
+    def build_output_dir_structure(self, no_train: bool = False):
         """
         Constructs the file structure
             output_dir
@@ -265,8 +291,11 @@ class DataTiler:
                 f'Please clear it manually, with DataTiler::cleanup() or specify a different directory.')
             raise FileExistsError
         os.chdir(self.output_dir)
-
-        for dir_name in ['train', 'test']:
+        if no_train:
+            sub_dirs = ['tiles']
+        else:
+            sub_dirs = ['train', 'test']
+        for dir_name in sub_dirs:
             os.mkdir(dir_name)
             os.chdir(dir_name)
             for dataset_name in self.dataset_names:
@@ -350,14 +379,14 @@ def create_annotation(poly: List[List[float]], bbox: List[float], rescale_corner
     }
 
 
-def remove_no_annotations(tile, an):
+def remove_no_annotations(an):
     if len(an) > 0:
         return True
     return False
 
 
 def remove_small_segment_coverage(thresh):
-    def f(tile, an):
+    def f(an):
         return (lambda x: ((np.max(x[2]) - np.min(x[0])) * (np.max(x[3]) - np.min(x[1]))) / (640 ** 2))(
             np.array([x['bbox'] for x in an]).transpose()) > thresh
 
@@ -380,7 +409,13 @@ def if_all(funcs):
     return f
 
 
-def remove_small_bboxes(thresh):
+def remove_small_bboxes(thresh: 1000):
+    """
+
+    :param thresh: Minimum bounding box area to keep
+    :return:
+    """
+
     def f(bbox):
         return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) > thresh
 
@@ -389,12 +424,12 @@ def remove_small_bboxes(thresh):
 
 if __name__ == '__main__':
     if glob('RGBD-Tree-Segs'):
-        dt = DataTiler('datasets', 'RGBD-Tree-Segs', cleanup_on_init=True, tile_width=640,
+        dt = DataTiler('small_ds', 'offset_tiles', cleanup_on_init=True, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     else:
         dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
                        tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320)
     dt.tile_dataset(
-        tile_filtering_function=lambda tile, an: remove_no_annotations(tile, an) and remove_small_segment_coverage(
-            thresh=.5)(tile, an), bbox_filtering_function=remove_small_bboxes(1000))
+        annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage(
+            thresh=.5)(an), bbox_filtering_function=remove_small_bboxes(1000), no_train=True)
