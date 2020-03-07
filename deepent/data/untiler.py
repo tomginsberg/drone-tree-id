@@ -8,6 +8,7 @@ import shapefile
 
 from detectron2.utils.visualizer import GenericMask
 from tqdm import tqdm
+# dumb chnage:wq
 
 class Untiler:
     def __init__(self, predictor):
