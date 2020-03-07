@@ -1,8 +1,9 @@
 import torch
+
+import detectron2.data.transforms as T
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import MetadataCatalog
 from detectron2.modeling import build_model
-import detectron2.data.transforms as T
 
 
 class RGBDPredictor:

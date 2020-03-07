@@ -178,7 +178,7 @@ class DataTiler:
             x_geo_ref, xres, _, y_geo_ref, _, yres = ds.get_transform()
 
             if self.compute_means:
-                mean = [np.mean(ortho[:, :, i]) for i in range(3)]
+                mean = np.mean(ortho[:, :, :-1].reshape(-1, 3), 0)
                 print(f'Pixel Mean is {mean}')
                 self.ortho_means.append(mean)
 
@@ -206,7 +206,10 @@ class DataTiler:
             tile_number, train_id, test_id, tile_id = 0, 0, 0, 0
             train_record, test_record, tile_record = [], [], []
             offsets = {}
-            num_tiles = ceil(img_w / self.dx) * ceil(img_h / self.dy)
+            x_tiles, y_tiles = ceil(img_w / self.dx), ceil(img_h / self.dy)
+            offsets['x_tiles'], offsets['y_tiles'] = x_tiles, y_tiles
+
+            num_tiles = x_tiles * y_tiles
             bad_tiles = 0
             for y in range(0, img_h, self.dy):
                 for x in range(0, img_w, self.dx):
@@ -217,30 +220,29 @@ class DataTiler:
                     tile[:, :, -1] = chm[y:y_c, x:x_c]
                     make_dir = lambda name, id_: os.path.join(self.output_dir, name, dataset_name,
                                                               f'tile_{id_}.png')
-                    if tile_filtering_function(tile):
-                        if no_train:
-                            image_output_dir = make_dir('tiles', tile_id)
-                            tile_id += 1
-                            offsets[image_output_dir] = (x_geo_ref + x * xres, y_geo_ref + y * yres)
-                            cv2.imwrite(image_output_dir, tile)
-                        elif annotation_filtering_function(annotations[tile_number]):
-                            annotation = lambda image_output_dir: {'file_name': image_output_dir,
-                                                                   'image_id': tile_number,
-                                                                   'width': (x_c - x),
-                                                                   'height': (y_c - y),
-                                                                   'annotations': annotations[tile_number]}
-                            if np.random.randint(0, 100) <= train_limit:
-                                image_output_dir = make_dir('train', train_id)
-                                train_id += 1
-                                train_record.append(annotation(image_output_dir))
-                            else:
-                                image_output_dir = make_dir('test', test_id)
-                                test_id += 1
-                                test_record.append(annotation(image_output_dir))
-                            cv2.imwrite(image_output_dir, tile)
 
+                    if no_train:
+                        image_output_dir = make_dir('tiles', tile_id)
+                        tile_id += 1
+                        offsets[image_output_dir] = (x_geo_ref + x * xres, y_geo_ref + y * yres)
+                        cv2.imwrite(image_output_dir, tile)
+
+                    elif tile_filtering_function(tile) and annotation_filtering_function(annotations[tile_number]):
+                        annotation = lambda image_output_dir: {'file_name': image_output_dir,
+                                                               'image_id': tile_number,
+                                                               'width': (x_c - x),
+                                                               'height': (y_c - y),
+                                                               'annotations': annotations[tile_number]}
+                        if np.random.randint(0, 100) <= train_limit:
+                            image_output_dir = make_dir('train', train_id)
+                            train_id += 1
+                            train_record.append(annotation(image_output_dir))
                         else:
-                            bad_tiles += 1
+                            image_output_dir = make_dir('test', test_id)
+                            test_id += 1
+                            test_record.append(annotation(image_output_dir))
+                        cv2.imwrite(image_output_dir, tile)
+
                     else:
                         bad_tiles += 1
 
@@ -385,7 +387,7 @@ def remove_no_annotations(an):
     return False
 
 
-def remove_small_segment_coverage(thresh):
+def remove_small_segment_coverage(thresh: float = .5):
     def f(an):
         return (lambda x: ((np.max(x[2]) - np.min(x[0])) * (np.max(x[3]) - np.min(x[1]))) / (640 ** 2))(
             np.array([x['bbox'] for x in an]).transpose()) > thresh
@@ -422,14 +424,28 @@ def remove_small_bboxes(thresh: 1000):
     return f
 
 
+def non_zero_ratio(x):
+    return np.count_nonzero(x) / len(x)
+
+
+def ignore_black_tiles(thresh: float = .99):
+    def f(tile):
+        return non_zero_ratio(tile[:, :, :-1].flatten()) > thresh
+
+    return f
+
+
 if __name__ == '__main__':
     if glob('RGBD-Tree-Segs'):
-        dt = DataTiler('small_ds', 'offset_tiles', cleanup_on_init=True, tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320)
+        dt = DataTiler('datasets', 'inference-test-set', cleanup_on_init=True, tile_width=640,
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
     else:
         dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
                        tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='*')
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
+
     dt.tile_dataset(
-        annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage(
-            thresh=.5)(an), bbox_filtering_function=remove_small_bboxes(1000), no_train=False)
+        tile_filtering_function=ignore_black_tiles(thresh=.99),
+        annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage()(an),
+        bbox_filtering_function=remove_small_bboxes(1000),
+        no_train=True)

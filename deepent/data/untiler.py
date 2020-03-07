@@ -1,14 +1,42 @@
-import json
-import os
 from glob import glob
 
-import cv2
-import numpy as np
 import shapefile
+from shapely.geometry import Polygon
+from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
-from tqdm import tqdm
-# dumb chnage:wq
+
+
+class PolygonRecord:
+    def __init__(self, num_tiles, x_tiles):
+        self.polygons = [[] for _ in range(num_tiles)]
+        self.meta = [[] for _ in range(num_tiles)]
+        self.x_tiles = x_tiles
+
+    def put(self, tile_num, polygon, id_, area, cls):
+        self.polygons[tile_num].append(polygon)
+        self.meta[tile_num].append((id_, area, cls))
+
+    def get_neighbours(self, tile_num):
+        if tile_num == 0:
+            # First tile, ie no neighbours
+            return []
+        if tile_num < self.x_tiles:
+            # First row, neighbours are only the tiles one left
+            return self.polygons[tile_num - 1]
+        if tile_num > self.x_tiles:
+            # Past first row
+            if tile_num % self.x_tiles == 0:
+                # First col only neighbour is above
+                return self.polygons[tile_num - self.x_tiles]
+            else:
+                # Non trivial case, need to check all three neighbours
+                return self.polygons[tile_num - 1] + self.polygons[tile_num - self.x_tiles] + self.polygons[
+                    tile_num - self.x_tiles - 1]
+
+    def poly_meta(self):
+        return zip(self.polygons, self.meta)
+
 
 class Untiler:
     def __init__(self, predictor):
@@ -19,33 +47,56 @@ class Untiler:
 
         with open(os.path.join(path_to_tiles, 'offsets.json'), 'r') as f:
             offsets = json.loads(f.read())
+        x_scale, y_scale = offsets['transform']
 
         tiles = glob(os.path.join(path_to_tiles, "*.png"))
+        poly_record = PolygonRecord(num_tiles=len(tiles), x_tiles=offsets['x_tiles'])
+        removed_polys, total_polys = 0, 0
 
+        for tile_num, tile in tqdm(enumerate(tiles)):
+            img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
+            width, height = img.shape[1], img.shape[0]
+            x_shift, y_shift = offsets[os.path.realpath(tile)]
+            predictions = self._predictor(img)
+            predictions = predictions["instances"].to("cpu")
+            if predictions.has("pred_masks"):
+                for (polygon, area, cls) in format_predictions(predictions, height, width):
+                    total_polys += 1
+                    neighbours = poly_record.get_neighbours(tile_num)
+                    next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
+                    if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
+                        poly_record.put(tile_num, next_poly, tree_id,
+                                        area * x_scale * y_scale, cls)
+                        tree_id += 1
+                    else:
+                        removed_polys += 1
+        print(f'Inference done. {removed_polys}/{total_polys} polygons removed')
         with shapefile.Writer(output) as shp:
-            shp.shapeType = 5  # set shapetype to polygons
+            shp.shapeType = 5  # set shape type to polygons
             shp.field('treeID', 'N', 24, 15)
             shp.field('polyArea', 'N', 24, 15)
             shp.field('segClass', 'C', 80, 0)
-
-            x_scale, y_scale = offsets['transform']
-
-            for tile in tqdm(tiles):
-                img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
-                width, height = img.shape[1], img.shape[0]
-                x_shift, y_shift = offsets[os.path.realpath(tile)]
-                predictions = self._predictor(img)
-                predictions = predictions["instances"].to("cpu")
-                if predictions.has("pred_masks"):
-                    for (polygon, area, cls) in format_predictions(predictions, height, width):
-                        shp.poly(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
-                        # TODO: convert index class to string
-                        shp.record(tree_id, area * x_scale * y_scale, cls)
-                        tree_id += 1
+            for polys, metas in tqdm(poly_record.poly_meta()):
+                for poly, (tree_id, area, cls) in zip(polys, metas):
+                    shp.poly(list(poly.exterior.coords))
+                    shp.record(tree_id, area, cls)
 
         with open(f'{output}.prj', "w+") as prj:
             epsg = getWKT_PRJ(epsg_ref)
             prj.write(epsg)
+
+
+def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
+    if poly.area < area_thresh:
+        return False
+    for neighbour in neighbours:
+        if neighbour.intesection(poly).area / neighbour.union(poly) > iou_thresh:
+            return False
+        if neighbour.contains(poly):
+            return False
+        if neighbour.within(poly):
+            return False
+    return True
 
 
 def affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift):
@@ -84,44 +135,38 @@ def getWKT_PRJ(epsg_code):
     output = remove_spaces.replace("\n", "")
     return output
 
+
 if __name__ == '__main__':
     import json
-    import matplotlib.pyplot as plt
     import cv2
     import os
     import numpy as np
-    import random
 
     from detectron2.config import get_cfg
-    from detectron2.engine import DefaultPredictor, default_argument_parser, default_setup
-    from detectron2.utils.visualizer import Visualizer, ColorMode
-    from detectron2.data import MetadataCatalog, DatasetCatalog
+    from detectron2.engine import DefaultPredictor, default_setup
 
-    from deepent.data.register_datasets import register_datasets
     from deepent.config import add_deepent_config
 
     config_file = 'configs/deepent_fuse_rcnn_R_50_FPN.yaml'
     threshold = 0.5
     model = 'output/baseline_fuse_07_02_2020/model_0049999.pth'
     samples = 1
-    dataset = 'CPT2a-n_train'
     type_ = 'many'
     opts = []
 
 
     class Args:
-        def __init__(self, conf, tr, mod, sam, ty, opt, dts):
+        def __init__(self, conf, tr, mod, sam, ty, opt):
             self.config_file = conf
             self.threshold = tr
             self.model = mod
             self.samples = sam
-            self.dataset = dts
             self.type = ty
             self.opts = []
             self.output = None
 
 
-    args = Args(config_file, threshold, model, samples, type_, opts, dataset)
+    args = Args(config_file, threshold, model, samples, type_, opts)
 
     cfg = get_cfg()
     add_deepent_config(cfg)
@@ -132,11 +177,9 @@ if __name__ == '__main__':
     cfg.freeze()
     default_setup(cfg, args)
 
-    from tools.predictor import RGBDPredictor
-
-    predictor = RGBDPredictor(cfg)
+    predictor = DefaultPredictor(cfg)
 
     ut = Untiler(predictor)
 
     ut(path_to_tiles='/home/ubuntu/RGBD-Tree-Segs-Clean/tiles/CPT2a-n',
-       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbd/rgbdcpta-n')
+       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/cpta-nnondup')
