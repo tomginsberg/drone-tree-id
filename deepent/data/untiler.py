@@ -54,7 +54,7 @@ class Untiler:
         removed_polys, total_polys = 0, 0
 
         for tile_num, tile in tqdm(enumerate(tiles)):
-            img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
+            img = cv2.imread(tile)
             width, height = img.shape[1], img.shape[0]
             x_shift, y_shift = offsets[os.path.realpath(tile)]
             predictions = self._predictor(img)
@@ -62,6 +62,8 @@ class Untiler:
             if predictions.has("pred_masks"):
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
+                    if len(polygon) < 4:
+                        continue
                     neighbours = poly_record.get_neighbours(tile_num)
                     next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                     if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
@@ -147,9 +149,9 @@ if __name__ == '__main__':
 
     from deepent.config import add_deepent_config
 
-    config_file = 'configs/deepent_fuse_rcnn_R_50_FPN.yaml'
+    config_file = 'configs/deepent_rcnn_R_50_FPN.yaml'
     threshold = 0.5
-    model = 'output/baseline_fuse_07_02_2020/model_0049999.pth'
+    model = 'output/baseline_25_01_2020/model_0054999.pth'
     samples = 1
     type_ = 'many'
     opts = []
@@ -181,5 +183,5 @@ if __name__ == '__main__':
 
     ut = Untiler(predictor)
 
-    ut(path_to_tiles='/home/ubuntu/RGBD-Tree-Segs-Clean/tiles/CPT2a-n',
-       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/cpta-nnondup')
+    ut(path_to_tiles='/home/ubuntu/CPTA-nInferenceTiles/tiles/CPT2a-n',
+       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/cpta-n')
