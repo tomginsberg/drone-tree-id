@@ -1,0 +1,12 @@
+_BASE_: "Base-DeepEnt-RCNN-FPN.yaml"
+MODEL:
+  BACKBONE:
+    NAME: "build_resnet_fpn_backbone"
+  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: True
+  RESNETS:
+    DEPTH: 50
+  PIXEL_MEAN: [120.961, 125.623, 111.1]
+  PIXEL_STD: [1.0, 1.0, 1.0]
+SOLVER:
+  BASE_LR: 0.01

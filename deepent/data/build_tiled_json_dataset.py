@@ -429,7 +429,7 @@ if __name__ == '__main__':
     else:
         dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
                        tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='*')
     dt.tile_dataset(
         annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage(
-            thresh=.5)(an), bbox_filtering_function=remove_small_bboxes(1000), no_train=True)
+            thresh=.5)(an), bbox_filtering_function=remove_small_bboxes(1000), no_train=False)
