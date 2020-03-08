@@ -7,6 +7,7 @@ from tqdm import tqdm
 from detectron2.utils.visualizer import GenericMask
 import IPython
 
+
 class PolygonRecord:
     def __init__(self, num_tiles, x_tiles):
         self.polygons = [[] for _ in range(num_tiles)]
@@ -49,7 +50,8 @@ class Untiler:
             offsets = json.loads(f.read())
         x_scale, y_scale = offsets['transform']
 
-        tiles = glob(os.path.join(path_to_tiles, "*.png"))
+        tiles = sorted(glob(os.path.join(path_to_tiles, "*.png")),
+                     key=lambda x: int(os.path.basename(x).split('_')[-1][:-4]))
         poly_record = PolygonRecord(num_tiles=len(tiles), x_tiles=offsets['x_tiles'])
         removed_polys, total_polys = 0, 0
 
@@ -59,13 +61,14 @@ class Untiler:
             x_shift, y_shift = offsets[os.path.realpath(tile)]
             predictions = self._predictor(img)
             predictions = predictions["instances"].to("cpu")
+            neighbours = poly_record.get_neighbours(tile_num)
+
             if predictions.has("pred_masks"):
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
                     if len(polygon) > 4:
                         # IPython.embed()
                         # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
-                        neighbours = poly_record.get_neighbours(tile_num)
                         next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
                             poly_record.put(tile_num, next_poly, tree_id,
@@ -94,10 +97,13 @@ def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
         return False
     for neighbour in neighbours:
         if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
+            print(neighbour, poly, 'IOU Cutoff')
             return False
         if neighbour.contains(poly):
+            print(neighbour, poly, 'Contains')
             return False
         if neighbour.within(poly):
+            print(neighbour, poly, 'Within')
             return False
     return True
 
