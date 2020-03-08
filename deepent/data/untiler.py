@@ -93,7 +93,7 @@ class Untiler:
         removed_polys, total_polys = 0, 0
 
         for tile_num, tile in tqdm(enumerate(tiles[200:300])):
-            img = cv2.imread(tile)
+            img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
             width, height = img.shape[1], img.shape[0]
             x_shift, y_shift = offsets[os.path.realpath(tile)]
             predictions = self.primary_predictor(img)
@@ -116,7 +116,7 @@ class Untiler:
 
         if self.secondary_predictor is not None:
             for tile_num, tile in tqdm(enumerate(tiles[200:300])):
-                img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
+                img = cv2.imread(tile)
                 width, height = img.shape[1], img.shape[0]
                 x_shift, y_shift = offsets[os.path.realpath(tile)]
                 predictions = self.secondary_predictor(img)
