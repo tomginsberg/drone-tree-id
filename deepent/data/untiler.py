@@ -96,15 +96,18 @@ def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
-        if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
-            print(neighbour, poly, 'IOU Cutoff')
-            return False
-        if neighbour.contains(poly):
-            print(neighbour, poly, 'Contains')
-            return False
-        if neighbour.within(poly):
-            print(neighbour, poly, 'Within')
-            return False
+        try:
+            if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
+                print(neighbour, poly, 'IOU Cutoff')
+                return False
+            if neighbour.contains(poly):
+                print(neighbour, poly, 'Contains')
+                return False
+            if neighbour.within(poly):
+                print(neighbour, poly, 'Within')
+                return False
+        except:
+            IPython.embed()
     return True
 
 
