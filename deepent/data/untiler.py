@@ -2,6 +2,7 @@ from glob import glob
 
 import shapefile
 from shapely.geometry import Polygon
+from shapely.errors import TopologicalError
 from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
@@ -104,8 +105,6 @@ class Untiler:
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
                     if len(polygon) > 4:
-                        # IPython.embed()
-                        # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
                         next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(0.1)
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.70, area_thresh=3):
                             poly_record.put(tile_num + 200, next_poly, tree_id,
@@ -158,11 +157,14 @@ def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
-        if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
-            return False
-        if neighbour.contains(poly):
-            return False
-        if neighbour.within(poly):
+        try:
+            if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
+                return False
+            if neighbour.contains(poly):
+                return False
+            if neighbour.within(poly):
+                return False
+        except TopologicalError:
             return False
     return True
 
