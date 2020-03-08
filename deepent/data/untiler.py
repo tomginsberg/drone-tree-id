@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
-
+import IPython
 
 class PolygonRecord:
     def __init__(self, num_tiles, x_tiles):
@@ -63,7 +63,8 @@ class Untiler:
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
                     if len(polygon) > 4:
-                        print(polygon, len(polygon))
+                        IPython.embed()
+                        print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
                         neighbours = poly_record.get_neighbours(tile_num)
                         next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
