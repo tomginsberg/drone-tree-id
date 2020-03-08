@@ -55,13 +55,13 @@ class Untiler:
         poly_record = PolygonRecord(num_tiles=len(tiles), x_tiles=offsets['x_tiles'])
         removed_polys, total_polys = 0, 0
 
-        for tile_num, tile in tqdm(enumerate(tiles)):
+        for tile_num, tile in tqdm(enumerate(tiles[200:300])):
             img = cv2.imread(tile)
             width, height = img.shape[1], img.shape[0]
             x_shift, y_shift = offsets[os.path.realpath(tile)]
             predictions = self._predictor(img)
             predictions = predictions["instances"].to("cpu")
-            neighbours = poly_record.get_neighbours(tile_num)
+            neighbours = poly_record.get_neighbours(tile_num + 200)
 
             if predictions.has("pred_masks"):
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
@@ -71,7 +71,7 @@ class Untiler:
                         # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
                         next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
-                            poly_record.put(tile_num, next_poly, tree_id,
+                            poly_record.put(tile_num + 200, next_poly, tree_id,
                                             area * x_scale * y_scale, cls)
                             tree_id += 1
                         else:
