@@ -128,11 +128,9 @@ class Untiler:
                     for (polygon, area, cls) in format_predictions(predictions, height, width):
                         total_polys += 1
                         if len(polygon) > 4:
-                            # IPython.embed()
-                            # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
                             next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(
                                 0.1)
-                            if new_polygon_q(next_poly, neighbours, iou_thresh=.70, area_thresh=3):
+                            if new_polygon_q(next_poly, neighbours, iou_thresh=.70):
                                 poly_record.put(tile_num + start, next_poly, tree_id,
                                                 area * x_scale * y_scale, cls)
                                 tree_id += 1
@@ -156,7 +154,7 @@ class Untiler:
         #     prj.write(epsg)
 
 
-def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
+def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=1):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
