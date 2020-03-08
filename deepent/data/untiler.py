@@ -116,7 +116,7 @@ class Untiler:
 
         if self.secondary_predictor is not None:
             for tile_num, tile in tqdm(enumerate(tiles[200:300])):
-                img = cv2.imread(tile)
+                img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
                 width, height = img.shape[1], img.shape[0]
                 x_shift, y_shift = offsets[os.path.realpath(tile)]
                 predictions = self.secondary_predictor(img)
@@ -158,18 +158,12 @@ def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
-        try:
-            if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
-                print(neighbour, poly, 'IOU Cutoff')
-                return False
-            if neighbour.contains(poly):
-                print(neighbour, poly, 'Contains')
-                return False
-            if neighbour.within(poly):
-                print(neighbour, poly, 'Within')
-                return False
-        except:
-            IPython.embed()
+        if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
+            return False
+        if neighbour.contains(poly):
+            return False
+        if neighbour.within(poly):
+            return False
     return True
 
 
@@ -251,7 +245,7 @@ if __name__ == '__main__':
     cfg.freeze()
     default_setup(cfg, args)
 
-    predictor = DefaultPredictor(cfg)
+    secondary_predictor = DefaultPredictor(cfg)
 
     config_file = 'configs/deepent_fuse_rcnn_R_50_FPN.yaml'
     threshold = 0.5
@@ -284,9 +278,9 @@ if __name__ == '__main__':
     default_setup(cfg, args)
     from tools.predictor import RGBDPredictor
 
-    secondary_predictor = RGBDPredictor(cfg)
+    primary_predictor = RGBDPredictor(cfg)
 
-    ut = Untiler(predictor, secondary_predictor)
+    ut = Untiler(primary_predictor, secondary_predictor)
 
     ut(path_to_tiles='/home/ubuntu/CPTA-nInferenceTiles/tiles/CPT2a-n',
        output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/cpta-n')
