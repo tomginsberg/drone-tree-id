@@ -35,6 +35,7 @@ class PolygonRecord:
                 indices = behind + [infront[1], infront[-1]]
             else:
                 indices = behind + infront
+            indices += [tile_num]
         else:
             # No lookahead
             # If on the left border only take above
