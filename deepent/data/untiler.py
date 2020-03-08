@@ -155,8 +155,8 @@ class Untiler:
 
 
 def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=1):
-    if poly.area < area_thresh:
-        return False
+    # if poly.area < area_thresh:
+    #     return False
     for neighbour in neighbours:
         try:
             intersection = neighbour.intersection(poly).area
