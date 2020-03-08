@@ -63,8 +63,8 @@ class Untiler:
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
                     if len(polygon) > 4:
-                        IPython.embed()
-                        print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
+                        # IPython.embed()
+                        # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
                         neighbours = poly_record.get_neighbours(tile_num)
                         next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
@@ -81,7 +81,7 @@ class Untiler:
             shp.field('segClass', 'C', 80, 0)
             for polys, metas in tqdm(poly_record.poly_meta()):
                 for poly, (tree_id, area, cls) in zip(polys, metas):
-                    shp.poly(list(poly.exterior.coords))
+                    shp.poly([list(poly.exterior.coords)])
                     shp.record(tree_id, area, cls)
 
         with open(f'{output}.prj', "w+") as prj:
@@ -108,7 +108,7 @@ def affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift):
     shift in shapefile coordinates
     """
     x, y = polygon.transpose()
-    return [np.array([x * x_scale + x_shift, y * y_scale + y_shift]).transpose()]
+    return np.array([x * x_scale + x_shift, y * y_scale + y_shift]).transpose()
 
 
 def format_predictions(predictions, height, width):
