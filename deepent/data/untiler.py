@@ -93,7 +93,7 @@ def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
-        if neighbour.intersection(poly).area / neighbour.union(poly) > iou_thresh:
+        if neighbour.intersection(poly).area / neighbour.union(poly).area > iou_thresh:
             return False
         if neighbour.contains(poly):
             return False
