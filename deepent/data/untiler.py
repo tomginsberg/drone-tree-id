@@ -69,7 +69,7 @@ class Untiler:
                     if len(polygon) > 4:
                         # IPython.embed()
                         # print(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift), len(polygon))
-                        next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
+                        next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(0.1)
                         if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
                             poly_record.put(tile_num + 200, next_poly, tree_id,
                                             area * x_scale * y_scale, cls)
