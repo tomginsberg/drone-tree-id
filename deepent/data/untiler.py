@@ -62,16 +62,16 @@ class Untiler:
             if predictions.has("pred_masks"):
                 for (polygon, area, cls) in format_predictions(predictions, height, width):
                     total_polys += 1
-                    if len(polygon) < 4:
-                        continue
-                    neighbours = poly_record.get_neighbours(tile_num)
-                    next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
-                    if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
-                        poly_record.put(tile_num, next_poly, tree_id,
-                                        area * x_scale * y_scale, cls)
-                        tree_id += 1
-                    else:
-                        removed_polys += 1
+                    if len(polygon) > 4:
+                        print(polygon, len(polygon))
+                        neighbours = poly_record.get_neighbours(tile_num)
+                        next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift))
+                        if new_polygon_q(next_poly, neighbours, iou_thresh=.90, area_thresh=3):
+                            poly_record.put(tile_num, next_poly, tree_id,
+                                            area * x_scale * y_scale, cls)
+                            tree_id += 1
+                        else:
+                            removed_polys += 1
         print(f'Inference done. {removed_polys}/{total_polys} polygons removed')
         with shapefile.Writer(output) as shp:
             shp.shapeType = 5  # set shape type to polygons
