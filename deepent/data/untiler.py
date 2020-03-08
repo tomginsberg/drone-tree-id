@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
 import IPython
+from shutil import copyfile
 
 
 class PolygonRecord:
@@ -149,9 +150,10 @@ class Untiler:
                     shp.poly([list(poly.exterior.coords)])
                     shp.record(tree_id, area, cls)
 
-        with open(f'{output}.prj', "w+") as prj:
-            epsg = getWKT_PRJ(epsg_ref)
-            prj.write(epsg)
+        copyfile('deepent/data/resources/generic.prj', f'{output}.prj')
+        # with open(f'{output}.prj', "w+") as prj:
+        #     epsg = getWKT_PRJ(epsg_ref)
+        #     prj.write(epsg)
 
 
 def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=3):
