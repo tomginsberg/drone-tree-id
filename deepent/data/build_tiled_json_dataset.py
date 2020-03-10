@@ -440,9 +440,9 @@ if __name__ == '__main__':
         dt = DataTiler('datasets', 'inference-test-set', cleanup_on_init=True, tile_width=640,
                        tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
     else:
-        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Tree-Segs-Clean', cleanup_on_init=True,
+        dt = DataTiler('/home/ubuntu/twister_raw', '/home/ubuntu/twister_inference', cleanup_on_init=True,
                        tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
+                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='*')
 
     dt.tile_dataset(
         tile_filtering_function=ignore_black_tiles(thresh=.99),

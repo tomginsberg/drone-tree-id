@@ -286,5 +286,5 @@ if __name__ == '__main__':
 
     ut = Untiler(primary_predictor, secondary_predictor)
 
-    ut(path_to_tiles='/home/ubuntu/CPTA-nInferenceTiles/tiles/CPT2a-n',
-       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/cpta-n')
+    ut(path_to_tiles='/home/ubuntu/twister_inference/tiles/twister',
+       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/twister')
