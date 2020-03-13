@@ -2,20 +2,30 @@ from typing import List, Optional
 
 import numpy as np
 from torch import nn
+from torch.functional import F
 
 from deepent.modelling.backbone.depth_encoder import DepthEncoder
 from deepent.modelling.backbone.depth_encoder import build_depth_encoder_backbone
-from detectron2.layers import ShapeSpec, FrozenBatchNorm2d
+from detectron2.layers import ShapeSpec, FrozenBatchNorm2d, Conv2d, get_norm
 from detectron2.modeling import ResNet, Backbone, ResNetBlockBase, BACKBONE_REGISTRY, make_stage
 from detectron2.modeling.backbone.fpn import LastLevelMaxPool, FPN
 from detectron2.modeling.backbone.resnet import BottleneckBlock, BasicStem
+from fvcore.nn import weight_init
 
 __all__ = ["build_deepent_fpn_backbone"]
 
-# TODO: ensure fusing dimension are correct or convolve to correct dimenions?
+
 class FusedResNet(Backbone):
+    """
+    bijective fusing from one resnet into self
+    fusing tensors can have different number of channels and dimension
+    depth_encoder: outputs hidden states to fuse into self
+    in_features: states to fuse
+    """
+
     def __init__(self, stem: BasicStem, stages: List[List[ResNetBlockBase]], depth_encoder: DepthEncoder,
-                 in_features: Optional[List[str]] = None, out_features: Optional[List[str]] = None):
+                 in_features: Optional[List[str]] = None, out_features: Optional[List[str]] = None,
+                 fuse_norm=""):
         """
         Args:
             stem (nn.Module): a stem module
@@ -26,18 +36,21 @@ class FusedResNet(Backbone):
                 If None, will return the output of the last layer.
         """
         super(FusedResNet, self).__init__()
-        # if depth_encoder is not None:
-        #    assert isinstance(depth_encoder, Backbone)
+        self.stem = stem
 
         self.depth_encoder = depth_encoder
-        self.in_features = in_features
-        self.stem = stem
+        depth_shapes = depth_encoder.output_shape()
+        self.depth_features = list(map(lambda x: x, depth_shapes.keys()))
+        assert (len(self.depth_features) == len(in_features))
+        depth_channels = [depth_shapes[f].channels for f in self.depth_features]
+        depth_strides = [depth_shapes[f].stride for f in self.depth_features]
 
         current_stride = self.stem.stride
         self._out_feature_strides = {"stem": current_stride}
         self._out_feature_channels = {"stem": self.stem.out_channels}
 
         self.stages_and_names = []
+        self.fusers = {}
         for i, blocks in enumerate(stages):
             for block in blocks:
                 assert isinstance(block, ResNetBlockBase), block
@@ -50,32 +63,43 @@ class FusedResNet(Backbone):
                 current_stride * np.prod([k.stride for k in blocks])
             )
             self._out_feature_channels[name] = blocks[-1].out_channels
+            if name in self.in_features:
+                d_name = self.depth_features[self.in_features.index(name)]
+                fuser = LateralFuser(
+                    x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_channels[d_name],
+                    y_stride=depth_strides[d_name], stage=str(i + 2), norm=fuse_norm)
+                self.fusers[name] = fuser
 
         if out_features is None:
             out_features = [name]
         self._out_features = out_features
         assert len(self._out_features)
         children = [x[0] for x in self.named_children()]
+
         # Ensure depth encoder output feature maps are speced to fuse with Resnet feature maps
-        # For now depth encoder is just a resnet, just need to check that its output feature maps are a subset
         for in_feature in self.in_features:
-            assert in_feature in children, "Available children: {}".format(", ".join(children))
+            assert in_feature in children, "Available children: {}".format(
+                ", ".join(children))
         for out_feature in self._out_features:
-            assert out_feature in children, "Available children: {}".format(", ".join(children))
+            assert out_feature in children, "Available children: {}".format(
+                ", ".join(children))
 
     def forward(self, x):
-        assert x.shape[1] == 4, f'Input to FuseResNet should be [4, n, n] not {list(x.shape[1:])}'
+        assert x.shape[
+            1] == 4, f'Input to FuseResNet should be [4, n, n] not {list(x.shape[1:])}'
         rgb, d = x[:, :3], x[:, 3:]
         outputs = {}
         depth_encoder_features = self.depth_encoder(d)
-        d = [depth_encoder_features[f] for f in self.in_features]
         x = self.stem(rgb)
         if "stem" in self._out_features:
             outputs["stem"] = x
         for stage, name in self.stages_and_names:
             x = stage(x)
             if name in self.in_features:
-                x = x + d.pop(0)
+                d_name = self.depth_features[self.in_features.index(name)]
+                y = depth_encoder_features[d_name]
+                fuser = self.fusers[name]
+                x = fuser(x, y)
             if name in self._out_features:
                 outputs[name] = x
 
@@ -88,6 +112,41 @@ class FusedResNet(Backbone):
             )
             for name in self._out_features
         }
+
+
+class LateralFuser(nn.Modules):
+    """
+    Fuse y into x
+    can have different channel or dimension, provided the dimensions differ by some scalar factor, given by the different in strides
+    """
+
+    def __init__(self, x_channels, x_stride, y_channels, y_stride, stage, norm=""):
+        self.x_stride = x_stride
+        self.y_stride = y_stride
+        self.interpolate = self.x_stride == self.y_stride
+        self.lateral = not self.x_channels == self.y_channels
+
+        use_bias = norm == ""
+        f_norm = get_norm(norm)
+
+        if x_channels is not y_channels:
+            lateral_norm = get_norm(norm)
+            self.lateral_conv = Conv2d(x_channels, y_channels,
+                                  kernel=1, bias=use_bias, norm=lateral_norm)
+            weight_init.c2_xavier_fill(self.lateral_conv)
+            self.add_module("fuse_lateral{}".format(stage), self.lateral_conv)
+
+        self.f = Conv2d(x_channels, x_channels, kernel=3,
+                             padding=1, bias=use_bias, norm=f_norm)
+        weight_init.c2_xavier_fill(self.f)
+        self.add_module("fuse_output{}".format(stage), self.f)
+
+    def forward(self, x, y):
+        if self.lateral:
+            y = self.lateral_conv(y)
+        if self.interpolate:
+            y = F.interpolate(y, scale_factor=self.y_stride//self.x_stride)
+        return x + self.f(y)
 
 
 def build_deepent_fused_resnet_backbone(cfg, input_shape):
@@ -129,19 +188,23 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape):
     stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
     res5_dilation = cfg.MODEL.RESNETS.RES5_DILATION
     # fmt: on
-    assert res5_dilation in {1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
+    assert res5_dilation in {
+        1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
 
-    num_blocks_per_stage = {50: [3, 4, 6, 3], 101: [3, 4, 23, 3], 152: [3, 8, 36, 3]}[depth]
+    num_blocks_per_stage = {50: [3, 4, 6, 3], 101: [
+        3, 4, 23, 3], 152: [3, 8, 36, 3]}[depth]
 
     stages = []
 
     # Avoid creating variables without gradients
     # It consumes extra memory and may cause allreduce to fail
-    out_stage_idx = [{"res2": 2, "res3": 3, "res4": 4, "res5": 5}[f] for f in out_features]
+    out_stage_idx = [{"res2": 2, "res3": 3, "res4": 4, "res5": 5}[f]
+                     for f in out_features]
     max_stage_idx = max(out_stage_idx)
     for idx, stage_idx in enumerate(range(2, max_stage_idx + 1)):
         dilation = res5_dilation if stage_idx == 5 else 1
-        first_stride = 1 if idx == 0 or (stage_idx == 5 and dilation == 2) else 2
+        first_stride = 1 if idx == 0 or (
+            stage_idx == 5 and dilation == 2) else 2
         stage_kargs = {"num_blocks": num_blocks_per_stage[idx], "first_stride": first_stride,
                        "in_channels": in_channels, "bottleneck_channels": bottleneck_channels,
                        "out_channels": out_channels, "num_groups": num_groups, "norm": norm,

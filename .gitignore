@@ -145,3 +145,4 @@ nohup.out
 .idea
 wandb/
 *.out
+.vscode

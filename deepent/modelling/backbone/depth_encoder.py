@@ -45,7 +45,8 @@ class DepthEncoder(Backbone):
         assert len(self._out_features)
         children = [x[0] for x in self.named_children()]
         for out_feature in self._out_features:
-            assert out_feature in children, "Available children: {}".format(", ".join(children))
+            assert out_feature in children, "Available children: {}".format(
+                ", ".join(children))
 
     def forward(self, x):
         outputs = {}
@@ -62,7 +63,8 @@ class DepthEncoder(Backbone):
     def output_shape(self):
         return {
             name: ShapeSpec(
-                channels=self._out_feature_channels[name], stride=self._out_feature_strides[name]
+                channels=self._out_feature_channels[name], stride=self._out_feature_strides[name], 
+                width=self._out_feature_width[name], height=self._out_feature_height[name]
             )
             for name in self._out_features
         }
@@ -100,19 +102,23 @@ def build_depth_encoder_backbone(cfg, input_shape):
     stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
     res5_dilation = cfg.MODEL.RESNETS.RES5_DILATION
     # fmt: on
-    assert res5_dilation in {1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
+    assert res5_dilation in {
+        1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
 
-    num_blocks_per_stage = {50: [3, 4, 6, 3], 101: [3, 4, 23, 3], 152: [3, 8, 36, 3]}[depth]
+    num_blocks_per_stage = {50: [3, 4, 6, 3], 101: [
+        3, 4, 23, 3], 152: [3, 8, 36, 3]}[depth]
 
     stages = []
 
     # Avoid creating variables without gradients
     # It consumes extra memory and may cause allreduce to fail
-    out_stage_idx = [{"res2": 2, "res3": 3, "res4": 4, "res5": 5}[f] for f in out_features]
+    out_stage_idx = [{"res2": 2, "res3": 3, "res4": 4, "res5": 5}[f]
+                     for f in out_features]
     max_stage_idx = max(out_stage_idx)
     for idx, stage_idx in enumerate(range(2, max_stage_idx + 1)):
         dilation = res5_dilation if stage_idx == 5 else 1
-        first_stride = 1 if idx == 0 or (stage_idx == 5 and dilation == 2) else 2
+        first_stride = 1 if idx == 0 or (
+            stage_idx == 5 and dilation == 2) else 2
         stage_kargs = {"num_blocks": num_blocks_per_stage[idx], "first_stride": first_stride,
                        "in_channels": in_channels, "bottleneck_channels": bottleneck_channels,
                        "out_channels": out_channels, "num_groups": num_groups, "norm": norm,
