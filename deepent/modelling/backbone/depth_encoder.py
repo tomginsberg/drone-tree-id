@@ -63,8 +63,7 @@ class DepthEncoder(Backbone):
     def output_shape(self):
         return {
             name: ShapeSpec(
-                channels=self._out_feature_channels[name], stride=self._out_feature_strides[name], 
-                width=self._out_feature_width[name], height=self._out_feature_height[name]
+                channels=self._out_feature_channels[name], stride=self._out_feature_strides[name]
             )
             for name in self._out_features
         }

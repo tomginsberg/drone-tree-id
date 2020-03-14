@@ -36,14 +36,13 @@ class FusedResNet(Backbone):
                 If None, will return the output of the last layer.
         """
         super(FusedResNet, self).__init__()
+        self.in_features = in_features
         self.stem = stem
 
         self.depth_encoder = depth_encoder
         depth_shapes = depth_encoder.output_shape()
         self.depth_features = list(map(lambda x: x, depth_shapes.keys()))
         assert (len(self.depth_features) == len(in_features))
-        depth_channels = [depth_shapes[f].channels for f in self.depth_features]
-        depth_strides = [depth_shapes[f].stride for f in self.depth_features]
 
         current_stride = self.stem.stride
         self._out_feature_strides = {"stem": current_stride}
@@ -66,8 +65,9 @@ class FusedResNet(Backbone):
             if name in self.in_features:
                 d_name = self.depth_features[self.in_features.index(name)]
                 fuser = LateralFuser(
-                    x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_channels[d_name],
-                    y_stride=depth_strides[d_name], stage=str(i + 2), norm=fuse_norm)
+                    x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
+                    y_stride=depth_shapes[d_name].stride, stage=str(i + 2), norm=fuse_norm)
+                self.add_module("fuse_" + name, fuser)
                 self.fusers[name] = fuser
 
         if out_features is None:
@@ -114,32 +114,31 @@ class FusedResNet(Backbone):
         }
 
 
-class LateralFuser(nn.Modules):
+class LateralFuser(nn.Module):
     """
     Fuse y into x
     can have different channel or dimension, provided the dimensions differ by some scalar factor, given by the different in strides
     """
 
     def __init__(self, x_channels, x_stride, y_channels, y_stride, stage, norm=""):
+        super(LateralFuser, self).__init__()
         self.x_stride = x_stride
         self.y_stride = y_stride
         self.interpolate = self.x_stride == self.y_stride
-        self.lateral = not self.x_channels == self.y_channels
+        self.lateral = not x_channels == y_channels
 
         use_bias = norm == ""
-        f_norm = get_norm(norm)
+        f_norm = get_norm(norm, x_channels)
 
         if x_channels is not y_channels:
-            lateral_norm = get_norm(norm)
-            self.lateral_conv = Conv2d(x_channels, y_channels,
-                                  kernel=1, bias=use_bias, norm=lateral_norm)
+            lateral_norm = get_norm(norm, x_channels)
+            self.lateral_conv = Conv2d(y_channels, x_channels,
+                                  kernel_size=1, bias=use_bias, norm=lateral_norm)
             weight_init.c2_xavier_fill(self.lateral_conv)
-            self.add_module("fuse_lateral{}".format(stage), self.lateral_conv)
 
-        self.f = Conv2d(x_channels, x_channels, kernel=3,
+        self.f = Conv2d(x_channels, x_channels, kernel_size=3,
                              padding=1, bias=use_bias, norm=f_norm)
         weight_init.c2_xavier_fill(self.f)
-        self.add_module("fuse_output{}".format(stage), self.f)
 
     def forward(self, x, y):
         if self.lateral:
