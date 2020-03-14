@@ -35,11 +35,11 @@ DATASETS:
     TRAIN: ("Kelowna_train", "CPT2a-n_train", "CPT2b_train", "SALCT1_train", "AMECT9_train",)
     TEST: ("Kelowna_test", "CPT2a-n_test", "CPT2b_test", "SALCT1_test", "AMECT9_test",)
 SOLVER:
-  IMS_PER_BATCH: 4 #16
+  IMS_PER_BATCH: 2 #16
   BASE_LR: 0.001
   STEPS: (60000, 80000)
   MAX_ITER: 120000
 INPUT:
-  MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
+  MIN_SIZE_TRAIN: (600, 640, 672, 704, 736, 768, 800)
   FORMAT: "RGBA"
 VERSION: 2

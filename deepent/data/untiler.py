@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
     config_file = 'configs/deepent_fuse_rcnn_R_50_FPN.yaml'
     threshold = 0.5
-    model = 'output/baseline_fuse_07_02_2020/model_0089999.pth'
+    model = 'output/fuse_24/model_final.pth'
     samples = 1
     type_ = 'many'
     opts = []
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
     primary_predictor = RGBDPredictor(cfg)
 
-    ut = Untiler(primary_predictor, secondary_predictor)
+    ut = Untiler(primary_predictor)
 
-    ut(path_to_tiles='/home/ubuntu/twister_inference/tiles/twister',
-       output='/home/ubuntu/drone-tree-id/output/shapefiles/rgbnonduplicate/twister')
+    ut(path_to_tiles='/home/ubuntu/inference-test-set/tiles/CPT2a-n',
+       output='/home/ubuntu/drone-tree-id/output/shapefiles/fuse_24/CPT2a-n')

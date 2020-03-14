@@ -66,7 +66,7 @@ class FusedResNet(Backbone):
                 d_name = self.depth_features[self.in_features.index(name)]
                 fuser = LateralFuser(
                     x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
-                    y_stride=depth_shapes[d_name].stride, stage=str(i + 2), norm=fuse_norm)
+                    y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
                 self.add_module("fuse_" + name, fuser)
                 self.fusers[name] = fuser
 
@@ -120,7 +120,7 @@ class LateralFuser(nn.Module):
     can have different channel or dimension, provided the dimensions differ by some scalar factor, given by the different in strides
     """
 
-    def __init__(self, x_channels, x_stride, y_channels, y_stride, stage, norm=""):
+    def __init__(self, x_channels, x_stride, y_channels, y_stride, norm=""):
         super(LateralFuser, self).__init__()
         self.x_stride = x_stride
         self.y_stride = y_stride
@@ -130,22 +130,22 @@ class LateralFuser(nn.Module):
         use_bias = norm == ""
         f_norm = get_norm(norm, x_channels)
 
-        if x_channels is not y_channels:
+        if self.lateral:
             lateral_norm = get_norm(norm, x_channels)
             self.lateral_conv = Conv2d(y_channels, x_channels,
                                   kernel_size=1, bias=use_bias, norm=lateral_norm)
             weight_init.c2_xavier_fill(self.lateral_conv)
 
-        self.f = Conv2d(x_channels, x_channels, kernel_size=3,
+        self.fuse_out = Conv2d(x_channels, x_channels, kernel_size=3,
                              padding=1, bias=use_bias, norm=f_norm)
-        weight_init.c2_xavier_fill(self.f)
+        weight_init.c2_xavier_fill(self.fuse_out)
 
     def forward(self, x, y):
         if self.lateral:
             y = self.lateral_conv(y)
         if self.interpolate:
             y = F.interpolate(y, scale_factor=self.y_stride//self.x_stride)
-        return x + self.f(y)
+        return x + self.fuse_out(y)
 
 
 def build_deepent_fused_resnet_backbone(cfg, input_shape):
