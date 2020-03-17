@@ -17,7 +17,9 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
               'redwood': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                           'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor},
               'elder': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                        'model': 'output/baseline_fuse_07_02_2020/model_0069999.pth', 'predictor': RGBDPredictor}
+                        'model': 'output/baseline_fuse_07_02_2020/model_0069999.pth', 'predictor': RGBDPredictor},
+              'oak': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                      'model': 'output/baseline_fuse_07_02_2020/model_0089999.pth', 'predictor': RGBDPredictor}
               }
 
 
