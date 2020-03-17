@@ -4,8 +4,8 @@ import os
 import shutil
 from glob import glob
 from math import ceil
-from typing import List, Dict, Union, Any
-from typing import Tuple
+from typing import List, Dict, Any
+from typing import Tuple, Union
 
 import cv2
 import numpy as np
@@ -20,7 +20,7 @@ np.random.seed(42)
 class DataTiler:
     def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
-                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: str = '*'):
+                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: Union[str, List[str]] = '*'):
         """
         :param input_dir:
         :param output_dir:

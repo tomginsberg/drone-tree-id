@@ -14,8 +14,8 @@ from tools.predictor import RGBDPredictor
 
 PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
                           'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': DefaultPredictor},
-              'redwood': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                          'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': RGBDPredictor}}
+              'redwood': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                          'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor}}
 
 
 class ProjectManager:
@@ -41,6 +41,10 @@ class ProjectManager:
         """
         self.path_to_raw_data = os.path.realpath(data)
         self.multiple_datasets = len(glob(os.path.join(self.path_to_raw_data, '*.tif'))) == 0
+        combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
+        self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
+                                 combo in combos]
+
         if shapefile_location is None:
             self.output = os.path.realpath('shapefiles')
         else:
@@ -53,10 +57,6 @@ class ProjectManager:
 
         if not use_generated_tiles:
             self.prepare_inference_set()
-
-        combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
-        self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
-                                 combo in combos]
 
         self.run_predictions()
 
