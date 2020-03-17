@@ -44,7 +44,6 @@ class DataTiler:
                 dataset_regex = [dataset_regex]
             self.dataset_input_paths = list(
                 set().union(*[glob(os.path.join(self.input_dir, reg)) for reg in dataset_regex]))
-            print(dataset_regex, self.dataset_input_paths)
             self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)

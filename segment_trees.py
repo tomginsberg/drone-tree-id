@@ -15,15 +15,42 @@ from tools.predictor import RGBDPredictor
 PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
                           'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': DefaultPredictor},
               'redwood': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                          'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor}}
+                          'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor},
+              'elder': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                        'model': 'output/baseline_fuse_07_02_2020/model_0069999.pth', 'predictor': RGBDPredictor}
+              }
 
 
 class ProjectManager:
     """
-    This is my docstring
+        Creates a manger to handle data pre-processing, predictions, and post-processing
+        on a dataset of Ortho, CHM pairs.
+        :param data: File path to a folder containing multiple datasets of Ortho+CHM pairs,
+        or the direct path to a single ortho and CHM
+        :param shapefile_location: File path to where the output shapefiles should be written.
+        Default drone-tree-id/shapefiles
+        :param predictors: A string of predictor ensembles separated by commas. Predictors are specified by their names
+        in the MODELZOO, ensembles are denoted with the '+' symbol.
+        Default 'redwood+sequoia'
+        Other examples: 'redwood, sequoia, redwood+sequoia', 'sequoia, redwood+sequoia'
+        :param datasets: If multiple datasets exist in --data, then this flag may be passed as a comma separated list of
+        regular expressions to indicate which datasets should be kept
+        Default '*'
+        Examples 'CPT*, Kelowna, AM*'
+        :param confidence: A value in [0, 1]. Confidence threshold for keeping a prediction of a single tree.
+        Default .5
+        :param duplicate_tol: A value in [0, 1]. Threshold for keeping a new prediction that is similar to an existing one
+        i.e a new polygon will be written if it is less then (100*duplicate_tol)% similar to all others
+        Default .85
+        :param min_area: A float value. Minimum polygon area in m^2 to keep in final prediction.
+        Default 4
+        :param use_generated_tiles: Look for tiles have have been previously generated
+        Default False
+        :param retain_tiles: Keep generated tiles after a run
+        Default False
     """
 
-    def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets='*',
+    def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets: str = '*',
                  confidence: float = .5,
                  duplicate_tol: float = .85,
                  min_area: float = 5,
@@ -32,6 +59,10 @@ class ProjectManager:
         """
         Creates a manger to handle data pre-processing, predictions, and post-processing
         on a dataset of Ortho, CHM pairs.
+        :param datasets:
+        :param use_generated_tiles:
+        :param retain_tiles:
+        :param shapefile_location:
         :param data: path to your folder containing multiple datasets of Ortho+CHM pairs,
         or the direct path to a single ortho and CHM
         :param predictors:
@@ -87,7 +118,6 @@ class ProjectManager:
             if self.multiple_datasets:
                 # If a full data collection is passed the tile directory will be in the given path
                 dataset_path = self.path_to_raw_data
-            print(dataset_path, dataset_name)
             for predictor_name, predictors in self.predictor_combos:
                 Untiler(predictors).predict_and_untile(os.path.join(dataset_path, 'tmp', 'tiles', dataset_name),
                                                        os.path.join(self.output, dataset_name,
