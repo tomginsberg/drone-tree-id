@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
 from tools.predictor import RGBDPredictor
-
+import IPython
 
 class PolygonRecord:
     def __init__(self, num_tiles, x_tiles):
