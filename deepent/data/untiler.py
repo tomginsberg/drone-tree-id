@@ -14,6 +14,7 @@ from detectron2.utils.visualizer import GenericMask
 from tools.predictor import RGBDPredictor
 import IPython
 
+
 class PolygonRecord:
     def __init__(self, num_tiles, x_tiles):
         self.polygons = [[] for _ in range(num_tiles)]
@@ -147,7 +148,10 @@ def format_predictions(predictions, height, width):
     masks = np.asarray(predictions.pred_masks)
     masks = [GenericMask(mask, height, width) for mask in masks]
     # polygon should not have holes (len(poly) = 1)
-    polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
+    try:
+        polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
+    except IndexError:
+        IPython.embed()
     # boxes = predictions.pred_boxes if predictions.has("pred_boxes") else [mask.bbox() for mask in masks]
     classes = predictions.pred_classes if predictions.has("pred_classes") else [None for _ in masks]
     areas = [mask.area() for mask in masks]
