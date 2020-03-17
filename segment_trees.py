@@ -10,11 +10,12 @@ from deepent.data.build_tiled_json_dataset import DataTiler, ignore_black_tiles,
 from deepent.data.untiler import Untiler
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor
+from tools.predictor import RGBDPredictor
 
 PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
                           'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': DefaultPredictor},
               'redwood': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                          'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': DefaultPredictor}}
+                          'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': RGBDPredictor}}
 
 
 class ProjectManager:
@@ -22,7 +23,7 @@ class ProjectManager:
     This is my docstring
     """
 
-    def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets=('*',),
+    def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets='*',
                  confidence: float = .5,
                  duplicate_tol: float = .85,
                  min_area: float = 5,
