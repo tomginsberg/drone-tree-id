@@ -44,7 +44,7 @@ class ProjectManager:
         combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
         self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
                                  combo in combos]
-
+        self.confidence = confidence
         if shapefile_location is None:
             self.output = os.path.realpath('shapefiles')
         else:
