@@ -41,15 +41,17 @@ class ProjectManager:
         """
         self.path_to_raw_data = os.path.realpath(data)
         self.multiple_datasets = len(glob(os.path.join(self.path_to_raw_data, '*.tif'))) == 0
+        self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
+
         combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
         self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
                                  combo in combos]
-        self.confidence = confidence
+
         if shapefile_location is None:
             self.output = os.path.realpath('shapefiles')
         else:
             self.output = os.path.realpath(shapefile_location)
-        self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
+
         self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
                                     vertical_overlay=200,
                                     horizontal_overlay=200, dataset_regex=datasets.strip().split(','),
