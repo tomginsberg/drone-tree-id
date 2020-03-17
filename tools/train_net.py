@@ -15,7 +15,7 @@ from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_resul
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 from detectron2.utils.logger import setup_logger
 from tools.wandb_writer import WandbWriter
-
+import glob
 
 class Trainer(DefaultTrainer):
     @classmethod
@@ -90,10 +90,12 @@ class Trainer(DefaultTrainer):
             results = list(results.values())[0]
         return results
 
-
-def setup(args):
+#custom test set: array of test set names to use in place of default (all)
+def setup(args, custom_test_set=None):
     cfg = get_cfg()
     add_deepent_config(cfg)
+    if custom_test_set is not None:
+        cfg.DATASETS.TEST = custom_test_set
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
@@ -101,6 +103,36 @@ def setup(args):
     setup_logger(output=cfg.OUTPUT_DIR, name="deepent")
     return cfg
 
+def ind_eval(args):
+    #create new mini-datasets
+    test_tiles = []
+    for location in glob.glob('/home/ubuntu/RGBD-Tree-Segs-Clean/test/*'):
+        filenames = glob.glob(location + '/*')
+        for ind in np.random.randint(0,len(filenames),2):
+            test_tiles.append(filenames[ind])
+
+    temp_dir_path_prefix = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'                
+    test_set_names = []                 
+    for i,path in enumerate(test_tiles):
+        test_set_names.append(temp_dir_name.split('/')[-1]+str(i)+'_test')
+        os.mkdir(temp_dir_name+str(i)+'_test')
+        shutil.copy(path, temp_dir_name + '/' test_set_names[-1] + path.split('/')[-1])        
+    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
+    cfg = setup(args,test_set_names)
+
+    #Run Eval
+    model = Trainer.build_model(cfg)
+    DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+        cfg.MODEL.WEIGHTS, resume=args.resume
+    )
+    res = Trainer.test(cfg, model)
+    if comm.is_main_process():
+                verify_results(cfg, res)
+                
+    #Visualize with different models and show evals
+    for test_set_name in test_set_names:
+        data = list(DatasetCatalog.get(test_set_names))
+        metadata = MetadataCatalog.get(test_set_name)
 
 def main(args):
     cfg = setup(args)
@@ -117,7 +149,6 @@ def main(args):
     trainer = Trainer(cfg)
     trainer.resume_or_load(resume=args.resume)
     return trainer.train()
-
 
 if __name__ == "__main__":
     try:
