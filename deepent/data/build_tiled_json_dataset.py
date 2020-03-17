@@ -17,7 +17,6 @@ from tqdm import tqdm
 np.random.seed(42)
 
 
-# TODO: Complete Docstrings
 class DataTiler:
     def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
@@ -31,13 +30,22 @@ class DataTiler:
         :param vertical_overlay:
         :param cleanup_on_init:
         """
-        self.input_dir, self.output_dir = input_dir, output_dir
+        self.input_dir, self.output_dir = os.path.realpath(input_dir), os.path.realpath(output_dir)
 
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
 
-        self.dataset_input_paths = glob(os.path.join(input_dir, dataset_regex))
-        self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
+        if len(glob(os.path.join(input_dir, '*.tif'))) > 0:
+            self.dataset_input_paths = [self.input_dir]
+            self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
+            print(f'Running predictions on {self.dataset_names[0]}')
+        else:
+            if isinstance(dataset_regex, str):
+                dataset_regex = [dataset_regex]
+            self.dataset_input_paths = list(
+                set().union(*[glob(os.path.join(self.input_dir, reg)) for reg in dataset_regex]))
+            print(dataset_regex, self.dataset_input_paths)
+            self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
         self.classes = {}
@@ -162,12 +170,12 @@ class DataTiler:
         for dataset_directory, dataset_name in zip(self.dataset_input_paths, self.dataset_names):
             ortho_name = glob(os.path.join(dataset_directory, '*ortho.tif'))
             if len(ortho_name) != 1:
-                raise FileNotFoundError('Either 0 or > 1 files matching *ortho.tif found.')
+                raise FileNotFoundError(f'Either 0 or > 1 files matching *ortho.tif found. {ortho_name}')
             ortho_name = ortho_name[0]
 
             chm_name = glob(os.path.join(dataset_directory, '*up_CHM.tif'))
             if len(chm_name) != 1:
-                raise FileNotFoundError('Either 0 or > 1 files matching *up_CHM.tif found.')
+                raise FileNotFoundError(f'Either 0 or > 1 files matching *up_CHM.tif found. {chm_name}')
             chm_name = chm_name[0]
 
             print(f'Reading Ortho: {ortho_name}')
@@ -290,20 +298,16 @@ class DataTiler:
         except FileExistsError:
             print(
                 f'Output Directory: "{self.output_dir}" already exists. '
-                f'Please clear it manually, with DataTiler::cleanup() or specify a different directory.')
+                f'Please clear it manually, with DataTiler.cleanup() or specify a different directory.')
             raise FileExistsError
-        os.chdir(self.output_dir)
         if no_train:
             sub_dirs = ['tiles']
         else:
             sub_dirs = ['train', 'test']
         for dir_name in sub_dirs:
-            os.mkdir(dir_name)
-            os.chdir(dir_name)
+            os.mkdir(os.path.join(self.output_dir, dir_name))
             for dataset_name in self.dataset_names:
-                os.mkdir(dataset_name)
-            os.chdir('..')
-        os.chdir('..')
+                os.mkdir(os.path.join(self.output_dir, dir_name, dataset_name))
 
     def cleanup(self):
         """

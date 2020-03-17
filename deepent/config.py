@@ -21,5 +21,5 @@ def add_deepent_config(cfg):
     _C.MODEL.DEPTH_ENCODER.RES2_OUT_CHANNELS = 256
 
     if not torch.cuda.is_available():
-        print('No CUDA, Training on CPU :(')
+        print('No CUDA, Defaulting to CPU :(')
         _C.MODEL.DEVICE = 'cpu'

@@ -89,3 +89,12 @@ and then transfer
 ```
 scp -r -i ~/.ssh/vm.pem ubuntu@ec2-54-226-164-33.compute-1.amazonaws.com:/home/ubuntu/drone-tree-id/output/baseline_17_01_2019/vis Desktop/vis
 ```
+```shell script
+python segment_trees.py 
+--data 'path to my dataset(s)' # if empty will look at the tiles path
+--plots ['CPT*', 'Twister', 'Kelowna'] # if empty will
+--predictors ['alexis, sequoia', 'andrew', 'sequoia']  # if empty will use a default setting 'fuse, mask'
+--confidence 0.5
+--duplicate-threshold 0.85
+--min-segment-area 2
+```
