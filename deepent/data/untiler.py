@@ -6,7 +6,6 @@ from shutil import copyfile
 import cv2
 import numpy as np
 import shapefile
-import torch
 from shapely.errors import TopologicalError
 from shapely.geometry import Polygon
 from tqdm import tqdm
@@ -14,7 +13,7 @@ from tqdm import tqdm
 from detectron2.utils.visualizer import GenericMask
 from tools.predictor import RGBDPredictor
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cpu'
 
 
 class PolygonRecord:

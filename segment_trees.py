@@ -23,6 +23,19 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
               }
 
 
+def run_description(predictors):
+    for i, ensemble in enumerate(predictors):
+        print(f'Run {i + 1}: {"+".join(ensemble)}')
+        for k, model in enumerate(ensemble):
+            try:
+
+                data = PREDICTORS[model]
+                print(
+                    f'Model {k + 1}: Name: {model}, \n\tConfig: {data["config_file"]} \n\tWeights: {data["model"]}\n\tRGBD Model {data["predictor"] == RGBDPredictor}\n')
+            except KeyError:
+                print(f'Model \'{model}\' not in Model Zoo!')
+
+
 class ProjectManager:
     """
         Creates a manger to handle data pre-processing, predictions, and post-processing
@@ -77,6 +90,7 @@ class ProjectManager:
         self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
 
         combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
+        run_description(combos)
         self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
                                  combo in combos]
 
