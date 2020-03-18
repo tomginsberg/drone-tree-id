@@ -169,12 +169,12 @@ class DataTiler:
         for dataset_directory, dataset_name in zip(self.dataset_input_paths, self.dataset_names):
             ortho_name = glob(os.path.join(dataset_directory, '*ortho.tif'))
             if len(ortho_name) != 1:
-                raise FileNotFoundError(f'Either 0 or > 1 files matching *ortho.tif found. {ortho_name}')
+                raise FileNotFoundError(f'Either 0 or > 1 files matching *ortho.tif found in {dataset_directory}')
             ortho_name = ortho_name[0]
 
-            chm_name = glob(os.path.join(dataset_directory, '*up_CHM.tif'))
+            chm_name = glob(os.path.join(dataset_directory, '*CHM.tif'))
             if len(chm_name) != 1:
-                raise FileNotFoundError(f'Either 0 or > 1 files matching *up_CHM.tif found. {chm_name}')
+                raise FileNotFoundError(f'Either 0 or > 1 files matching *CHM.tif found in {dataset_directory}')
             chm_name = chm_name[0]
 
             print(f'Reading Ortho: {ortho_name}')

@@ -31,7 +31,8 @@ def run_description(predictors):
 
                 data = PREDICTORS[model]
                 print(
-                    f'Model {k + 1}: Name: {model}, \n\tConfig: {data["config_file"]} \n\tWeights: {data["model"]}\n\tRGBD Model {data["predictor"] == RGBDPredictor}\n')
+                    f'Model {k + 1}: Name: {model}, \n\tConfig: {data["config_file"]}'
+                    f' \n\tWeights: {data["model"]}\n\tRGBD Model {data["predictor"] == RGBDPredictor}\n')
             except KeyError:
                 print(f'Model \'{model}\' not in Model Zoo!')
 
@@ -71,20 +72,6 @@ class ProjectManager:
                  min_area: float = 5,
                  use_generated_tiles: bool = False,
                  retain_tiles: bool = False):
-        """
-        Creates a manger to handle data pre-processing, predictions, and post-processing
-        on a dataset of Ortho, CHM pairs.
-        :param datasets:
-        :param use_generated_tiles:
-        :param retain_tiles:
-        :param shapefile_location:
-        :param data: path to your folder containing multiple datasets of Ortho+CHM pairs,
-        or the direct path to a single ortho and CHM
-        :param predictors:
-        :param confidence:
-        :param duplicate_tol:
-        :param min_area:
-        """
         self.path_to_raw_data = os.path.realpath(data)
         self.multiple_datasets = len(glob(os.path.join(self.path_to_raw_data, '*.tif'))) == 0
         self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
