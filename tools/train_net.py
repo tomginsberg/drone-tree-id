@@ -31,7 +31,7 @@ class Trainer(DefaultTrainer):
                 ]
 
     @classmethod
-    def test(cls, cfg, model, evaluators=None):
+    def test(cls, cfg, model, evaluators=None,wandb_on = True):
         """
         Args:
             cfg (CfgNode):
@@ -82,9 +82,10 @@ class Trainer(DefaultTrainer):
                 logger.info("Evaluation results for {} in csv format:".format(dataset_name))
                 print_csv_format(results_i)
                 logger = logging.getLogger(__name__)
-                for task, res in results.items():
-                    # Don't print "AP-category" metrics since they are usually not tracked.
-                    wandb.log({f'{task}/{k}': v for k, v in res.items() if "-" not in k})
+                if wandb_on:
+                    for task, res in results.items():
+                        # Don't print "AP-category" metrics since they are usually not tracked.
+                        wandb.log({f'{task}/{k}': v for k, v in res.items() if "-" not in k})
 
         if len(results) == 1:
             results = list(results.values())[0]
@@ -116,7 +117,7 @@ def ind_eval(args):
     for i,path in enumerate(test_tiles):
         test_set_names.append(temp_dir_name.split('/')[-1]+str(i)+'_test')
         os.mkdir(temp_dir_name+str(i)+'_test')
-        shutil.copy(path, temp_dir_name + '/' test_set_names[-1] + path.split('/')[-1])        
+        shutil.copy(path, temp_dir_name + '/' + test_set_names[-1] + path.split('/')[-1])        
     register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
     cfg = setup(args,test_set_names)
 
@@ -141,7 +142,7 @@ def main(args):
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
-        res = Trainer.test(cfg, model)
+        res = Trainer.test(cfg, model,wandb_on=False)
         if comm.is_main_process():
             verify_results(cfg, res)
         return res
