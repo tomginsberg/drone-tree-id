@@ -6,13 +6,15 @@ from shutil import copyfile
 import cv2
 import numpy as np
 import shapefile
+import torch
 from shapely.errors import TopologicalError
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
 from tools.predictor import RGBDPredictor
-import IPython
+
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class PolygonRecord:
@@ -67,7 +69,7 @@ class Untiler:
     def __init__(self, predictors):
         self.predictors = predictors
 
-    def predict_and_untile(self, path_to_tiles: str, output: str):
+    def predict_and_untile(self, path_to_tiles: str, output: str, duplicate_tol=.85, min_area=2):
         tree_id = 0
 
         with open(os.path.join(path_to_tiles, 'offsets.json'), 'r') as f:
@@ -88,7 +90,7 @@ class Untiler:
                 width, height = img.shape[1], img.shape[0]
                 x_shift, y_shift = offsets[os.path.realpath(tile)]
                 predictions = predictor(img)
-                predictions = predictions["instances"].to("cpu")
+                predictions = predictions["instances"].to(DEVICE)
                 neighbours = poly_record.get_neighbours(tile_num, lookahead=(i > 0))
 
                 if predictions.has("pred_masks"):
@@ -97,7 +99,7 @@ class Untiler:
                         if len(polygon) > 4:
                             next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(
                                 0.2)
-                            if new_polygon_q(next_poly, neighbours, iou_thresh=.70, area_thresh=3):
+                            if new_polygon_q(next_poly, neighbours, iou_thresh=duplicate_tol, area_thresh=min_area):
                                 poly_record.put(tile_num, next_poly, tree_id,
                                                 area * x_scale * y_scale, cls)
                                 tree_id += 1
@@ -148,10 +150,9 @@ def format_predictions(predictions, height, width):
     masks = np.asarray(predictions.pred_masks)
     masks = [GenericMask(mask, height, width) for mask in masks]
     # polygon should not have holes (len(poly) = 1)
-    try:
-        polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
-    except IndexError:
-        IPython.embed()
+
+    polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
+
     # boxes = predictions.pred_boxes if predictions.has("pred_boxes") else [mask.bbox() for mask in masks]
     classes = predictions.pred_classes if predictions.has("pred_classes") else [None for _ in masks]
     areas = [mask.area() for mask in masks]
