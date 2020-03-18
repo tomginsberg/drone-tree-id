@@ -95,10 +95,10 @@ class Trainer(DefaultTrainer):
 def setup(args, custom_test_set=None):
     cfg = get_cfg()
     add_deepent_config(cfg)
-    if custom_test_set is not None:
-        cfg.DATASETS.TEST = custom_test_set
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    if custom_test_set is not None:
+        cfg.DATASETS.TEST = custom_test_set
     cfg.freeze()
     default_setup(cfg, args)
     setup_logger(output=cfg.OUTPUT_DIR, name="deepent")
@@ -112,7 +112,7 @@ def ind_eval(args):
         for ind in np.random.randint(0,len(filenames),2):
             test_tiles.append(filenames[ind])
 
-    temp_dir_path_prefix = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'                
+    temp_dir_name = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'                
     test_set_names = []                 
     for i,path in enumerate(test_tiles):
         test_set_names.append(temp_dir_name.split('/')[-1]+str(i)+'_test')
