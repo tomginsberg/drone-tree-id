@@ -44,6 +44,17 @@ def run_description(predictors):
                 print(f'Model \'{model}\' not in Model Zoo!')
 
 
+def get_predictor(config_file, model, predictor, confidence):
+    cfg = get_cfg()
+    add_deepent_config(cfg)
+    cfg.merge_from_file(os.path.realpath(config_file))
+    cfg.MODEL.WEIGHTS = os.path.realpath(model)
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = confidence
+    cfg.freeze()
+
+    return predictor(cfg)
+
+
 class ProjectManager:
     """
         Creates a manger to handle data pre-processing, predictions, and post-processing
@@ -87,8 +98,9 @@ class ProjectManager:
 
         combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
         run_description(combos)
-        self.predictor_combos = [('-'.join(combo), [self.get_predictor(**PREDICTORS[model]) for model in combo]) for
-                                 combo in combos]
+        self.predictor_combos = [
+            ('-'.join(combo), [get_predictor(**PREDICTORS[model], confidence=self.confidence) for model in combo]) for
+            combo in combos]
 
         if shapefile_location is None:
             self.output = os.path.realpath('shapefiles')
@@ -107,16 +119,6 @@ class ProjectManager:
 
         if not retain_tiles:
             self.clean_tiles()
-
-    def get_predictor(self, config_file, model, predictor):
-        cfg = get_cfg()
-        add_deepent_config(cfg)
-        cfg.merge_from_file(os.path.realpath(config_file))
-        cfg.MODEL.WEIGHTS = os.path.realpath(model)
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.confidence
-        cfg.freeze()
-
-        return predictor(cfg)
 
     def prepare_inference_set(self):
         self.data_tiler.tile_dataset(
