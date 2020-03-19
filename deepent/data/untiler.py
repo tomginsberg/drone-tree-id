@@ -42,13 +42,13 @@ class PolygonRecord:
             # No lookahead
             if t % xw == 0:
                 # left edge
-                indices = [t - xw, t - xw + 1]
+                indices = [t, t - xw, t - xw + 1]
             elif t + 1 % xw == 0:
                 # right edge
-                indices = [t - xw, t - 1, t - xw - 1]
+                indices = [t, t - xw, t - 1, t - xw - 1]
             else:
                 # center
-                indices = [t - 1, t - xw, t - xw - 1, t - xw + 1]
+                indices = [t, t - 1, t - xw, t - xw - 1, t - xw + 1]
 
         return self._get_many_polygons(indices)
 
@@ -89,7 +89,6 @@ class Untiler:
                 x_shift, y_shift = offsets[os.path.realpath(tile)]
                 predictions = predictor(img)
                 predictions = predictions["instances"].to(DEVICE)
-                neighbours = poly_record.get_neighbours(tile_num, lookahead=(i > 0))
 
                 if predictions.has("pred_masks"):
                     for (polygon, area, cls) in format_predictions(predictions, height, width):
@@ -97,7 +96,8 @@ class Untiler:
                         if len(polygon) > 4:
                             next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(
                                 0.2)
-                            if new_polygon_q(next_poly, neighbours, iou_thresh=duplicate_tol, area_thresh=min_area):
+                            if new_polygon_q(next_poly, poly_record.get_neighbours(tile_num, lookahead=(i > 0)),
+                                             iou_thresh=duplicate_tol, area_thresh=min_area):
                                 poly_record.put(tile_num, next_poly, tree_id,
                                                 area * x_scale * y_scale, cls)
                                 tree_id += 1
