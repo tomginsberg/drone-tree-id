@@ -33,7 +33,7 @@ def no_annotations_data_filter(dicts: List[Dict[str, Any]]) -> List[Dict[str, An
     return list(filter(lambda x: len(x['annotations']) > 0, dicts))[:len(dicts) // 2]
 
 
-def visualize_comparison(predictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
+def visualize_comparison(predictor:RGBDPredictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
                          prefix: str,
                          data_filtering_function=lambda x: x[:len(x // 2)]):
     """
@@ -71,7 +71,7 @@ def visualize_comparison(predictor, data: List[Dict[str, Any]], metadata: str, o
         plt.close()
 
 
-def visualize_many(predictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
+def visualize_many(predictor:RGBDPredictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
                    prefix: str):
     """
     Generate multiple inference plots in a single image
@@ -87,7 +87,7 @@ def visualize_many(predictor, data: List[Dict[str, Any]], metadata: str, output:
 
     """
     dicts = random.sample(data, samples)
-    for dic in dicts:
+    for dic in tqdm(dicts):
         # Define layout of plots, rows by columns
         fig, axes = plt.subplots(2, 6)
         for ax in axes.ravel():
@@ -102,7 +102,7 @@ def visualize_many(predictor, data: List[Dict[str, Any]], metadata: str, output:
         plt.close()
 
 
-def visualize_single(predictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
+def visualize_single(predictor:RGBDPredictor, data: List[Dict[str, Any]], metadata: str, output: str, samples: int,
                      prefix: str):
     """
     Generate single inference plots
@@ -118,7 +118,7 @@ def visualize_single(predictor, data: List[Dict[str, Any]], metadata: str, outpu
 
     """
     dicts = random.sample(data, samples)
-    for dic in dicts:
+    for dic in tqdm(dicts):
         img, predictions = get_predictions(predictor, dic["file_name"])
         visualizer = Visualizer(img, metadata=metadata)
         vis = visualizer.draw_instance_predictions(predictions["instances"].to("cpu")).get_image()
@@ -131,9 +131,9 @@ def visualize_single(predictor, data: List[Dict[str, Any]], metadata: str, outpu
         plt.close()
 
 
-def get_predictions(predictor: object, img_path: str):
+def get_predictions(predictor: RGBDPredictor, img_path: str):
     """
-    Dynamically obtain predictions for RGB and RGBD models
+    Obtain predictions for RGB and RGBD models
 
     Args:
         predictor: predictor used for inference
@@ -142,13 +142,9 @@ def get_predictions(predictor: object, img_path: str):
     Returns: RGB image and prediction dictionary
     """
     # Handle loading in RGBD or RGB image for any predictor
-    img = cv2.imread(img_path)
-    try:
-        rgba = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-        predictions = predictor(rgba)
-    except Exception as e:
-        print(f'Could not infer RGBD, trying RGB: {e}')
-        predictions = predictor(img)
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    predictions = predictor(img)
+    img = img[:,:,:3]
     return img, predictions
 
 
@@ -186,7 +182,7 @@ def main(args):
     Args:
         args: see arg parser
     """
-    register_datasets(args.data_sets)
+    register_datasets(args.data_path)
     cfg = setup(args)
     predictor = RGBDPredictor(cfg)
     for dataset in args.dataset:

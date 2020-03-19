@@ -146,3 +146,5 @@ nohup.out
 wandb/
 *.out
 .vscode
+shapefiles/
+*.tif

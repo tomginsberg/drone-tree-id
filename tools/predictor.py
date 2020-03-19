@@ -11,6 +11,7 @@ class RGBDPredictor:
     Create a simple end-to-end predictor with the given config.
     The predictor takes an RGBD image, resizes it to the specified resolution,
     runs the model and produces a dict of predictions.
+    This predictor can handle both RGB and RGBD based models.
 
     Attributes:
         metadata (Metadata): the metadata of the underlying dataset, obtained from
@@ -21,7 +22,7 @@ class RGBDPredictor:
     .. code-block:: python
 
         pred = DefaultPredictor(cfg)
-        inputs = cv2.imread("input.jpg")
+        inputs = cv2.imread("input.jpg", cv2.IMREAD_UNCHANGED)
         outputs = pred(inputs)
     """
 
@@ -49,13 +50,17 @@ class RGBDPredictor:
         Returns:
             predictions (dict): the output of the model
         """
-        # if len(original_image.shape) == 4:
 
         with torch.no_grad():  # https://github.com/sphinx-doc/sphinx/issues/4258
-            # Apply pre-processing to image.
-            if "RGB" in self.input_format:
-                # whether the model expects BGR inputs or RGB
-                original_image = original_image[:, :, ::-1]
+            # expect RGBD input
+            assert(original_image.shape[2]==4)
+            # if model does not take in depth channel, remove it
+            if "RGBA" not in self.input_format:
+                # Apply pre-processing to image.
+                original_image = original_image[:,:,:3]
+                if "RGB" in self.input_format:
+                    # whether the model expects BGR inputs or RGB
+                    original_image = original_image[:, :, ::-1]
             height, width = original_image.shape[:2]
             image = self.transform_gen.get_transform(original_image).apply_image(original_image)
             image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
