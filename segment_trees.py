@@ -93,8 +93,8 @@ class ProjectManager:
             self.output = os.path.realpath(shapefile_location)
 
         self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
-                                    vertical_overlay=320,
-                                    horizontal_overlay=320, dataset_regex=datasets.strip().split(','),
+                                    vertical_overlay=400,
+                                    horizontal_overlay=400, dataset_regex=datasets.strip().split(','),
                                     cleanup_on_init=not use_generated_tiles)
 
         if not use_generated_tiles:
