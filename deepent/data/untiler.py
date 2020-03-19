@@ -98,7 +98,7 @@ class Untiler:
                         if len(polygon) > 4:
                             next_poly = Polygon(affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift)).simplify(
                                 0.2)
-                            if new_polygon_q(next_poly, neighbours, iou_thresh=duplicate_tol, area_thresh=min_area):
+                            if True or new_polygon_q(next_poly, neighbours, iou_thresh=duplicate_tol, area_thresh=min_area):
                                 poly_record.put(tile_num, next_poly, tree_id,
                                                 area * x_scale * y_scale, cls)
                                 tree_id += 1
