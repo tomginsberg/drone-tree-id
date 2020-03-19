@@ -119,7 +119,7 @@ class Untiler:
         copyfile('deepent/data/resources/generic.prj', f'{output}.prj')
 
 
-def new_polygon_q(poly, neighbours, iou_thresh: .85, area_thresh=2):
+def new_polygon_q(poly, neighbours, iou_thresh: .75, area_thresh=2):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:

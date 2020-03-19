@@ -37,8 +37,8 @@ def run_description(predictors):
 
                 data = PREDICTORS[model]
                 print(
-                    f'Model {k + 1}: Name: {model}, \n\tConfig: {data["config_file"]}'
-                    f' \n\tWeights: {data["model"]}\n\tRGBD Model {data["predictor"] == RGBDPredictor}\n')
+                    f'Model {k + 1}: Name: {model} \n\t Config: {data["config_file"]}'
+                    f' \n\t Weights: {data["model"]}\n\t RGBD Model {data["predictor"] == RGBDPredictor}\n')
             except KeyError:
                 print(f'Model \'{model}\' not in Model Zoo!')
 
@@ -93,8 +93,8 @@ class ProjectManager:
             self.output = os.path.realpath(shapefile_location)
 
         self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
-                                    vertical_overlay=400,
-                                    horizontal_overlay=400, dataset_regex=datasets.strip().split(','),
+                                    vertical_overlay=320,
+                                    horizontal_overlay=320, dataset_regex=datasets.strip().split(','),
                                     cleanup_on_init=not use_generated_tiles)
 
         if not use_generated_tiles:
