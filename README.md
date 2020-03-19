@@ -1,5 +1,13 @@
 # Dense Canopy Tree Crown Instance Segmentation
 
+## Library Issues:
+'https://github.com/cocodataset/cocoapi/issues/49'
+pycocotools python3 unicode issue
+Alter line 308 of coco.py at pycocotools library directory, from:
+if type(resFile) == str or type(resFile) == unicode:
+to:
+if type(resFile) == str or type(resFile) == bytes:
+
 ## TODOs:
 
 There is a sneaky modification in : `/home/ubuntu/drone-tree-id/lib/detectron2/detectron2/checkpoint/c2_model_loading.py` fix at some point
@@ -65,30 +73,29 @@ For example:
 python tools/train_net.py --config-file /home/ubuntu/drone-tree-id/configs/deepent_rcnn_R_50_FPN.yaml --eval-only MODEL.WEIGHTS /home/ubuntu/drone-tree-id/output/model_0034999.pth
 ```
 
-## Benchmarking
-To benchmark training or evalutation sessions:
-```
-python benchmark.py --config-file configs/deepent_rcnn_R_50_FPN.yaml --task train
-```
-
-
 ## Visualization
 
-To create a 6x2 sample visualization of model inference, run the following with the appropriate arguments:
-* `--config-file`: the config file to load
-* `--model`: the weight file to load`
-* `--dataset`: name of the dataset
-* `--threshold`: confidence threshold
-* `--samples`: number of sample visualizations to produce
-* `--output`: path to store visualizations
-* `--seed`: use random seed or config seed
+To create visualizations of a model inference use the `tools/vis.py` cli tool.
+For more information about the arguments run:
+
 ```
-python tools/vis.py --threshold 0.5 --config-file configs/deepent_fuse_rcnn_R_50_FPN.yaml --samples 5 --output output/baseline_fuse_07_02_2020/vis --type comparison --dataset CPT2a-n_test CPT2a-n_train  Kelowna_train Kelowna_test AMECT9_train AMECT9_test SALCT1_train SALCT1_test CPT2b_train CPT2b_test --model output/baseline_fuse_07_02_2020/model_0049999.pth
+python tools/vis.py --help
 ```
-and then transfer
+
+An example of visualization 5 2x12 infrence plots on the 'CPT2b_test' dataset would be 
+
 ```
-scp -r -i ~/.ssh/vm.pem ubuntu@ec2-54-226-164-33.compute-1.amazonaws.com:/home/ubuntu/drone-tree-id/output/baseline_17_01_2019/vis Desktop/vis
+python tools/vis.py --threshold 0.5 --config-file configs/deepent_fuse_rcnn_R_50_FPN.yaml --samples 5 --output output/fuse_lateral/vis --type comparison --dataset CPT2b_test --model output/fuse_lateral/model_final.pth --data_path ~/RGBD-Tree-Segs-Clean/ --type many
 ```
+
+To transfer from AWS to your local machine, use SCP
+
+```
+scp -r -i path/to/ssh_key ubuntu@ip-address:/path/to/saved/visualizations path/to/transfer
+```
+
+## Inference 
+
 ```shell script
 python segment_trees.py 
 --data 'path to my dataset(s)' # if empty will look at the tiles path
@@ -98,3 +105,4 @@ python segment_trees.py
 --duplicate-threshold 0.85
 --min-segment-area 2
 ```
+

@@ -207,7 +207,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="A script that visualizes instance predictions."
     )
-    parser.add_argument("--data_sets", required=True, type=str, help="Path to dataset to register")
+    parser.add_argument("--data_path", required=True, type=str, help="Path to dataset to register")
     parser.add_argument("--model", required=True, type=str, help="Path to model weights")
     parser.add_argument("--config-file", required=True, help="Path to config")
     parser.add_argument("--dataset", help="name of the dataset from which to sample, can be multiple", type=str,
