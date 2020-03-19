@@ -22,10 +22,12 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
                              'model': 'output/fuse_long/model_0059999.pth', 'predictor': RGBDPredictor},
               'fuselong90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                              'model': 'output/fuse_long/model_0089999.pth', 'predictor': RGBDPredictor},
-              'elder': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                        'model': 'output/baseline_fuse_07_02_2020/model_0069999.pth', 'predictor': RGBDPredictor},
-              'oak': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                      'model': 'output/baseline_fuse_07_02_2020/model_0089999.pth', 'predictor': RGBDPredictor}
+              'fuse90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                         'model': 'output/baseline_fuse_07_02_2020/model_0089999.pth', 'predictor': RGBDPredictor},
+              'fuse60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                         'model': 'output/baseline_fuse_07_02_2020/model_0059999.pth', 'predictor': RGBDPredictor},
+              'fuse30': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
+                         'model': 'output/baseline_fuse_07_02_2020/model_0029999.pth', 'predictor': RGBDPredictor}
               }
 
 
