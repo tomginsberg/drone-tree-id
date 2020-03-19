@@ -17,7 +17,7 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
               'redwood': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                           'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor},
               'fuselong30': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                             'model': 'output/fuse_long/model_0029999l.pth', 'predictor': RGBDPredictor},
+                             'model': 'output/fuse_long/model_0029999.pth', 'predictor': RGBDPredictor},
               'fuselong60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                              'model': 'output/fuse_long/model_0059999.pth', 'predictor': RGBDPredictor},
               'fuselong90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
@@ -34,7 +34,6 @@ def run_description(predictors):
         print(f'Run {i + 1}: {"+".join(ensemble)}')
         for k, model in enumerate(ensemble):
             try:
-
                 data = PREDICTORS[model]
                 print(
                     f'Model {k + 1}: Name: {model} \n\t Config: {data["config_file"]}'
@@ -81,6 +80,8 @@ class ProjectManager:
         self.path_to_raw_data = os.path.realpath(data)
         self.multiple_datasets = len(glob(os.path.join(self.path_to_raw_data, '*.tif'))) == 0
         self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
+        if isinstance(predictors, tuple):
+            predictors = ','.join(predictors)
 
         combos = [[y.strip() for y in x.split('+')] for x in predictors.split(',')]
         run_description(combos)
