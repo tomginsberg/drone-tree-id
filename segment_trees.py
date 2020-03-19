@@ -74,7 +74,7 @@ class ProjectManager:
 
     def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets: str = '*',
                  confidence: float = .5,
-                 duplicate_tol: float = .75,
+                 duplicate_tol: float = .8,
                  min_area: float = 4,
                  use_generated_tiles: bool = False,
                  retain_tiles: bool = False):
