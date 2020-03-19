@@ -26,30 +26,29 @@ class PolygonRecord:
         self.polygons[tile_num].append(polygon)
         self.meta[tile_num].append([id_, area, cls])
 
-    def get_neighbours(self, tile_num, lookahead=False):
+    def get_neighbours(self, t, lookahead=False):
         xw = self.x_tiles
-        # left, top, top left,
-        # top right, bottom, right, bottom right, bottom left
-        behind = [tile_num - 1, tile_num - xw, tile_num - xw - 1]
-        infront = [tile_num - xw + 1, tile_num + xw, tile_num + 1, tile_num + 1 + xw, tile_num - 1 + xw]
 
         if lookahead:
-            if tile_num % xw == 0:
+            if t % xw == 0:
                 # left border, take above and all in front but bottom left
-                indices = [behind[1]] + infront[:-1]
-            elif tile_num + 1 % xw == 0:
+                indices = [t, t + 1, t - xw, t - xw + 1, t + xw, t + xw + 1]
+            elif t + 1 % xw == 0:
                 # right border, take all behind and bottom + bottom left
-                indices = behind + [infront[1], infront[-1]]
+                indices = [t, t - 1, t - xw, t - xw - 1, t + xw, t + xw - 1]
             else:
-                indices = behind + infront
-            indices += [tile_num]
+                indices = [t, t - 1, t + 1, t - xw, t - xw - 1, t - xw + 1, t + xw, t + xw - 1, t + xw + 1]
         else:
             # No lookahead
-            # If on the left border only take above
-            if tile_num % xw == 0:
-                indices = [behind[1]]
+            if t % xw == 0:
+                # left edge
+                indices = [t - xw, t - xw + 1]
+            elif t + 1 % xw == 0:
+                # right edge
+                indices = [t - xw, t - 1, t - xw - 1]
             else:
-                indices = behind
+                # center
+                indices = [t - 1, t - xw, t - xw - 1, t - xw + 1]
 
         return self._get_many_polygons(indices)
 
@@ -119,7 +118,7 @@ class Untiler:
         copyfile('deepent/data/resources/generic.prj', f'{output}.prj')
 
 
-def new_polygon_q(poly, neighbours, iou_thresh: .75, area_thresh=2):
+def new_polygon_q(poly, neighbours, iou_thresh: .75, area_thresh=4, containment_thresh=.9):
     if poly.area < area_thresh:
         return False
     for neighbour in neighbours:
@@ -127,9 +126,9 @@ def new_polygon_q(poly, neighbours, iou_thresh: .75, area_thresh=2):
             intersection = neighbour.intersection(poly).area
             if intersection / neighbour.union(poly).area > iou_thresh:
                 return False
-            if intersection / neighbour.area > iou_thresh:
+            if intersection / neighbour.area > containment_thresh:
                 return False
-            if intersection / poly.area > iou_thresh:
+            if intersection / poly.area > containment_thresh:
                 return False
         except TopologicalError:
             return False
