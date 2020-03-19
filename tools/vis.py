@@ -10,7 +10,7 @@ from tqdm import tqdm
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.utils.visualizer import Visualizer
-from detectron2.config import CfgNode as CN
+from detectron2.config import CfgNode
 
 from deepent.config import add_deepent_config
 from deepent.data.register_datasets import register_datasets
@@ -152,7 +152,7 @@ def get_predictions(predictor: object, img_path: str):
     return img, predictions
 
 
-def setup(args) -> CN:
+def setup(args) -> CfgNode:
     """
     Setup config file for predictor
 

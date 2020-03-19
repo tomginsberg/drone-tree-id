@@ -1,12 +1,9 @@
 import logging
 import os
 from collections import OrderedDict
-
-import wandb
+import glob
 
 import detectron2.utils.comm as comm
-from deepent.config import add_deepent_config
-from deepent.data.register_datasets import register_datasets
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
@@ -14,8 +11,13 @@ from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_resul
     print_csv_format, DatasetEvaluator
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 from detectron2.utils.logger import setup_logger
+
+import wandb
 from tools.wandb_writer import WandbWriter
-import glob
+
+from deepent.config import add_deepent_config
+from deepent.data.register_datasets import register_datasets
+
 
 class Trainer(DefaultTrainer):
     @classmethod
@@ -31,7 +33,7 @@ class Trainer(DefaultTrainer):
                 ]
 
     @classmethod
-    def test(cls, cfg, model, evaluators=None,wandb_on = True):
+    def test(cls, cfg, model, evaluators=None, wandb_on=True):
         """
         Args:
             cfg (CfgNode):
@@ -91,7 +93,8 @@ class Trainer(DefaultTrainer):
             results = list(results.values())[0]
         return results
 
-#custom test set: array of test set names to use in place of default (all)
+
+# custom test set: array of test set names to use in place of default (all)
 def setup(args, custom_test_set=None):
     cfg = get_cfg()
     add_deepent_config(cfg)
@@ -104,36 +107,38 @@ def setup(args, custom_test_set=None):
     setup_logger(output=cfg.OUTPUT_DIR, name="deepent")
     return cfg
 
+
 def ind_eval(args):
-    #create new mini-datasets
+    # create new mini-datasets
     test_tiles = []
     for location in glob.glob('/home/ubuntu/RGBD-Tree-Segs-Clean/test/*'):
         filenames = glob.glob(location + '/*')
-        for ind in np.random.randint(0,len(filenames),2):
+        for ind in np.random.randint(0, len(filenames), 2):
             test_tiles.append(filenames[ind])
 
-    temp_dir_name = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'                
-    test_set_names = []                 
-    for i,path in enumerate(test_tiles):
-        test_set_names.append(temp_dir_name.split('/')[-1]+str(i)+'_test')
-        os.mkdir(temp_dir_name+str(i)+'_test')
-        shutil.copy(path, temp_dir_name + '/' + test_set_names[-1] + path.split('/')[-1])        
+    temp_dir_name = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'
+    test_set_names = []
+    for i, path in enumerate(test_tiles):
+        test_set_names.append(temp_dir_name.split('/')[-1] + str(i) + '_test')
+        os.mkdir(temp_dir_name + str(i) + '_test')
+        shutil.copy(path, temp_dir_name + '/' + test_set_names[-1] + path.split('/')[-1])
     register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
-    cfg = setup(args,test_set_names)
+    cfg = setup(args, test_set_names)
 
-    #Run Eval
+    # Run Eval
     model = Trainer.build_model(cfg)
     DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
         cfg.MODEL.WEIGHTS, resume=args.resume
     )
     res = Trainer.test(cfg, model)
     if comm.is_main_process():
-                verify_results(cfg, res)
-                
-    #Visualize with different models and show evals
+        verify_results(cfg, res)
+
+    # Visualize with different models and show evals
     for test_set_name in test_set_names:
         data = list(DatasetCatalog.get(test_set_names))
         metadata = MetadataCatalog.get(test_set_name)
+
 
 def main(args):
     cfg = setup(args)
@@ -142,7 +147,7 @@ def main(args):
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
-        res = Trainer.test(cfg, model,wandb_on=False)
+        res = Trainer.test(cfg, model, wandb_on=False)
         if comm.is_main_process():
             verify_results(cfg, res)
         return res
@@ -150,6 +155,7 @@ def main(args):
     trainer = Trainer(cfg)
     trainer.resume_or_load(resume=args.resume)
     return trainer.train()
+
 
 if __name__ == "__main__":
     try:
@@ -159,7 +165,7 @@ if __name__ == "__main__":
 
     args = default_argument_parser().parse_args()
     if args.eval_only:
-        wandb.init(project="forest", name='_'.join(args.opts[-1].split('/')[-2:])+'_eval')
+        wandb.init(project="forest", name='_'.join(args.opts[-1].split('/')[-2:]) + '_eval')
     wandb.init(project="forest")
 
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))
