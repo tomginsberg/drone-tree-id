@@ -74,8 +74,8 @@ class ProjectManager:
 
     def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets: str = '*',
                  confidence: float = .5,
-                 duplicate_tol: float = .85,
-                 min_area: float = 5,
+                 duplicate_tol: float = .75,
+                 min_area: float = 4,
                  use_generated_tiles: bool = False,
                  retain_tiles: bool = False):
         self.path_to_raw_data = os.path.realpath(data)
@@ -130,7 +130,8 @@ class ProjectManager:
             for predictor_name, predictors in self.predictor_combos:
                 Untiler(predictors).predict_and_untile(os.path.join(dataset_path, 'tmp', 'tiles', dataset_name),
                                                        os.path.join(self.output, dataset_name,
-                                                                    f'{dataset_name}_{predictor_name}'))
+                                                                    f'{dataset_name}_{predictor_name}'),
+                                                       duplicate_tol=self.duplicate_tol, min_area=self.min_area)
 
     def clean_tiles(self):
         if self.multiple_datasets:

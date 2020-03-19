@@ -68,7 +68,7 @@ class Untiler:
     def __init__(self, predictors):
         self.predictors = predictors
 
-    def predict_and_untile(self, path_to_tiles: str, output: str, duplicate_tol=.85, min_area=2):
+    def predict_and_untile(self, path_to_tiles: str, output: str, duplicate_tol=.75, min_area=2):
         tree_id = 0
 
         with open(os.path.join(path_to_tiles, 'offsets.json'), 'r') as f:
