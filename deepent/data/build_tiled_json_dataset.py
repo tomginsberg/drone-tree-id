@@ -439,16 +439,12 @@ def ignore_black_tiles(thresh: float = .99):
 
 
 if __name__ == '__main__':
-    if glob('RGBD-Tree-Segs'):
-        dt = DataTiler('datasets', 'inference-test-set', cleanup_on_init=True, tile_width=640,
-                       tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='CPT2a-n*')
-    else:
-        dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/inference-test-set', cleanup_on_init=True,
-                       tile_width=640,
-                       tile_height=640, horizontal_overlay=128, vertical_overlay=128, dataset_regex='CPT2a-n*')
+    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Training-Data', cleanup_on_init=True,
+                   tile_width=640,
+                   tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='*')
 
     dt.tile_dataset(
         tile_filtering_function=ignore_black_tiles(thresh=.99),
         annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage()(an),
         bbox_filtering_function=remove_small_bboxes(1000),
-        no_train=True)
+        no_train=False)
