@@ -42,23 +42,23 @@ class DataTiler:
         else:
             if isinstance(dataset_regex, str):
                 dataset_regex = [dataset_regex]
-            self.dataset_input_paths = list(
-                set().union(*[glob(os.path.join(self.input_dir, reg)) for reg in dataset_regex]))
+            self.dataset_input_paths = [x for x in set().union(
+                *[glob(os.path.join(self.input_dir, reg)) for reg in dataset_regex]) if 'tmp' not in x]
             self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
-            print('Paths:\n', self.dataset_input_paths, 'Names:\n', self.dataset_names)
+            print('Paths:\n', self.dataset_input_paths, '\nNames:\n', self.dataset_names)
 
-        self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
-        self.classes = {}
-        self.compute_means = compute_means
-        if compute_means:
-            self.ortho_means = []
+            self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
+            self.classes = {}
+            self.compute_means = compute_means
+            if compute_means:
+                self.ortho_means = []
             self.chm_means = []
 
-        if cleanup_on_init:
-            try:
-                self.cleanup()
-            except FileNotFoundError:
-                print('No directory to cleanup. Proceeding')
+            if cleanup_on_init:
+                try:
+                    self.cleanup()
+                except FileNotFoundError:
+                    print('No directory to cleanup. Proceeding')
 
     def _tile_segments(self, dataset_directory: str, ds: rasterio.DatasetReader,
                        bbox_filtering_function) -> List[List[Dict[str, any]]]:

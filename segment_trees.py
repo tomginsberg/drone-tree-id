@@ -125,7 +125,7 @@ class ProjectManager:
 
         self.run_predictions()
 
-        if not retain_tiles:
+        if not (use_generated_tiles and retain_tiles):
             self.clean_tiles()
 
     def prepare_inference_set(self):
