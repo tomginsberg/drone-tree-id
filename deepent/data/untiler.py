@@ -15,6 +15,7 @@ from tools.predictor import RGBDPredictor
 
 DEVICE = 'cpu'
 
+import IPython
 
 class PolygonRecord:
     def __init__(self, num_tiles, x_tiles):
@@ -147,13 +148,15 @@ def affine_polygon(polygon, x_scale, y_scale, x_shift, y_shift):
 def format_predictions(predictions, height, width):
     masks = np.asarray(predictions.pred_masks)
     masks = [GenericMask(mask, height, width) for mask in masks]
-    # polygon should not have holes (len(poly) = 1)
-
-    polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
-
     # boxes = predictions.pred_boxes if predictions.has("pred_boxes") else [mask.bbox() for mask in masks]
     classes = predictions.pred_classes if predictions.has("pred_classes") else [None for _ in masks]
     areas = [mask.area() for mask in masks]
+    # for some reason we get empty predictions?????
+    tpls = list(filter(lambda tpl: len(tpl[0].polygons), zip(masks, classes, areas)))
+    masks, classes, areas = zip(*tpls) if len(tpls) else [],[],[]
+    # polygon should not have holes (len(poly) = 1)
+    IPython.embed()
+    polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
 
     assert (len(polygons) == len(classes) == len(areas))
 
