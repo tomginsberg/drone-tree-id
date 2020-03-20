@@ -21,7 +21,7 @@ def ind_eval(args):
     #create new mini-datasets
     test_tiles = []
     test_tile_segs = []
-    for location in glob.glob('/home/ubuntu/RGBD-Tree-Segs-Clean/test/*'):
+    for location in glob.glob('/home/ubuntu/RGBD-Training-Data/test/*'):
         filenames = glob.glob(location + '/*.png')
         with open(os.path.join(location,'segs.json'),'r') as segfile:
             segs = json.load(segfile)
@@ -29,7 +29,7 @@ def ind_eval(args):
                 test_tiles.append(filenames[ind])
                 test_tile_segs.append(list(filter(lambda x : x["file_name"]==filenames[ind],segs)))
                 
-    test_dir = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/'                
+    test_dir = '/home/ubuntu/RGBD-Training-Data/test/'                
     folder_names = []                 
     for i,path in enumerate(test_tiles):
         folder_names.append('temporary_'+str(i))
@@ -41,9 +41,9 @@ def ind_eval(args):
             return
         with open(os.path.join(test_dir,folder_names[-1],'segs.json'),'w') as segfile:
             segfile.write(json.dumps(test_tile_segs[i]))
-            
+
     test_set_names = list(map(lambda x : x + "_test", folder_names))        
-    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
+    register_datasets(f'/home/ubuntu/RGBD-Training-Data/')
     
     cfg = get_cfg()
     add_deepent_config(cfg)
@@ -89,7 +89,7 @@ def ind_eval(args):
         i+=1
         
     #remove temporary dirs
-    os.chdir('/home/ubuntu/RGBD-Tree-Segs-Clean/test')
+    os.chdir('/home/ubuntu/RGBD-Training-Data/test')
     for folder in glob.glob('temporary*'):
         for file in glob.glob(folder + '/*'):
             os.remove(file)
