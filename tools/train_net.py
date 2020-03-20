@@ -127,7 +127,7 @@ def main(args):
 
 if __name__ == "__main__":
     try:
-        register_datasets('/home/ubuntu/RGBD-Tree-Segs-Clean')
+        register_datasets('/home/ubuntu/RGBD-Training-Data')
     except FileNotFoundError:
         register_datasets('RGBD-Tree-Segs')
 
