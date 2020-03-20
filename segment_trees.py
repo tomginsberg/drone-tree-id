@@ -35,7 +35,7 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
               'fuse2460': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                            'model': 'output/fuse_lateral/model_0059999.pth', 'predictor': RGBDPredictor},
               'rgbd': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0014999.pth', 'predictor': RGBDPredictor}
+                       'model': 'output/rgbd/model_009999.pth', 'predictor': RGBDPredictor}
               }
 
 
