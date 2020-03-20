@@ -108,38 +108,6 @@ def setup(args, custom_test_set=None):
     return cfg
 
 
-def ind_eval(args):
-    # create new mini-datasets
-    test_tiles = []
-    for location in glob.glob('/home/ubuntu/RGBD-Tree-Segs-Clean/test/*'):
-        filenames = glob.glob(location + '/*')
-        for ind in np.random.randint(0, len(filenames), 2):
-            test_tiles.append(filenames[ind])
-
-    temp_dir_name = '/home/ubuntu/RGBD-Tree-Segs-Clean/test/temporary_'
-    test_set_names = []
-    for i, path in enumerate(test_tiles):
-        test_set_names.append(temp_dir_name.split('/')[-1] + str(i) + '_test')
-        os.mkdir(temp_dir_name + str(i) + '_test')
-        shutil.copy(path, temp_dir_name + '/' + test_set_names[-1] + path.split('/')[-1])
-    register_datasets(f'/home/ubuntu/RGBD-Tree-Segs-Clean/')
-    cfg = setup(args, test_set_names)
-
-    # Run Eval
-    model = Trainer.build_model(cfg)
-    DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-        cfg.MODEL.WEIGHTS, resume=args.resume
-    )
-    res = Trainer.test(cfg, model)
-    if comm.is_main_process():
-        verify_results(cfg, res)
-
-    # Visualize with different models and show evals
-    for test_set_name in test_set_names:
-        data = list(DatasetCatalog.get(test_set_names))
-        metadata = MetadataCatalog.get(test_set_name)
-
-
 def main(args):
     cfg = setup(args)
     if args.eval_only:
