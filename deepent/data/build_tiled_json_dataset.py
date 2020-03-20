@@ -18,7 +18,7 @@ np.random.seed(42)
 
 
 class DataTiler:
-    def __init__(self, input_dir: str = 'datasets', output_dir: str = 'test_dataset', tile_width: int = 640,
+    def __init__(self, input_dir: str, output_dir: str, tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
                  cleanup_on_init: bool = False, compute_means=False, dataset_regex: Union[str, List[str]] = '*'):
         """
@@ -45,6 +45,7 @@ class DataTiler:
             self.dataset_input_paths = list(
                 set().union(*[glob(os.path.join(self.input_dir, reg)) for reg in dataset_regex]))
             self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
+            print('Paths:\n', self.dataset_input_paths, 'Names:\n', self.dataset_names)
 
         self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
         self.classes = {}
