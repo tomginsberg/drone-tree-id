@@ -34,10 +34,12 @@ PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
                                    'model': 'output/fuse_lateral/model_final.pth', 'predictor': RGBDPredictor},
               'fuse2460': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
                            'model': 'output/fuse_lateral/model_0059999.pth', 'predictor': RGBDPredictor},
-              'rgbd35': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0034999.pth', 'predictor': RGBDPredictor},
-              'rgbd': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0009999.pth', 'predictor': RGBDPredictor}
+              'rgbd30': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
+                       'model': 'output/rgbd/model_0029999.pth', 'predictor': RGBDPredictor},
+              'rgbd40': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
+                       'model': 'output/rgbd/model_0039999.pth', 'predictor': RGBDPredictor},
+              'rgbd15': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
+                       'model': 'output/rgbd/model_0014999.pth', 'predictor': RGBDPredictor}
               }
 
 

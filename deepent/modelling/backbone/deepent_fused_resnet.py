@@ -64,7 +64,7 @@ class FusedResNet(Backbone):
             self._out_feature_channels[name] = blocks[-1].out_channels
             if name in self.in_features:
                 d_name = self.depth_features[self.in_features.index(name)]
-                fuser = LateralFuser(
+                fuser = SumFuser(
                     x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
                     y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
                 self.add_module("fuse_" + name, fuser)
@@ -112,6 +112,21 @@ class FusedResNet(Backbone):
             )
             for name in self._out_features
         }
+
+
+class SumFuser(nn.Module):
+    """
+    Fuse y into x by elementwise summation
+    x and y must be of the same shape
+    """
+
+    def __init__(self, x_channels, x_stride, y_channels, y_stride, norm=""):
+        super(SumFuser, self).__init__()
+        assert(x_channels==y_channels)
+        assert(x_stride==y_stride)
+
+    def forward(self, x, y):
+        return x + y
 
 
 class LateralFuser(nn.Module):
@@ -217,6 +232,7 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape):
             for block in blocks:
                 block.freeze()
         stages.append(blocks)
+
     return FusedResNet(stem, stages, depth_encoder=depth_encoder, in_features=in_features, out_features=out_features)
 
 

@@ -106,3 +106,7 @@ python segment_trees.py
 The PyCOCOTools library has a python2/3 compatibility issue. See https://github.com/cocodataset/cocoapi/issues/49 for the fix.
 pycocotools python3 unicode issue
 Alter line 308 of coco.py at pycocotools library directory, change `unicode` to `bytes`.
+
+
+When loading pretrain ResNet weights into a depth model, the checkpoint loader loads the suffix of matching weights between two models with the longest name (e.g. backbone.res2 vs backbone.depth_encoder.res2). This convention is not kept in depth based resnet backbones, so we manyally remove the depth-encoder matches before loading in new weights. 
+See the TODO edit in `/home/ubuntu/drone-tree-id/lib/detectron2/detectron2/checkpoint/c2_model_loading.py`
