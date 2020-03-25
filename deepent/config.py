@@ -10,6 +10,7 @@ def add_deepent_config(cfg):
     _C = cfg
 
     _C.MODEL.RESNETS.IN_FEATURES = CN()
+    # in-fusing location of depth encoder feature maps
     _C.MODEL.RESNETS.IN_FEATURES = ["res2", "res3", "res4", "res5"]
 
     # Add config for depth encoder
@@ -17,6 +18,7 @@ def add_deepent_config(cfg):
 
     _C.MODEL.DEPTH_ENCODER.STEM_OUT_CHANNELS = 64
     _C.MODEL.DEPTH_ENCODER.FREEZE_AT = 0
+    # depth encoder feature maps to fuse into backbone resnet
     _C.MODEL.DEPTH_ENCODER.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
     _C.MODEL.DEPTH_ENCODER.RES2_OUT_CHANNELS = 256
 
