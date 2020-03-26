@@ -129,7 +129,7 @@ class ProjectManager:
         self.multiple_datasets = len(
             glob(os.path.join(self.path_to_raw_data, '*.png' if self.is_tile_path else '*.tif'))) == 0
 
-        assert (not self.multiple_datasets and self.is_tile_path), 'A custom tile path with multiple ' \
+        assert (not self.multiple_datasets) and self.is_tile_path, 'A custom tile path with multiple ' \
                                                                    'datasets is not currently supported'
 
         self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
