@@ -150,17 +150,9 @@ def format_predictions(predictions, height, width):
     # boxes = predictions.pred_boxes if predictions.has("pred_boxes") else [mask.bbox() for mask in masks]
     classes = predictions.pred_classes if predictions.has("pred_classes") else [None for _ in masks]
     areas = [mask.area() for mask in masks]
-    # for some reason we get empty predictions?????
 
-    # masks, classes, areas = zip(*macs) if len(macs) else [], [], []
-    # # polygon should not have holes (len(poly) = 1)
-    # IPython.embed()
-    # polygons = [reshape_and_close_poly(mask.polygons[0]) for mask in masks]
-    #
-    # assert (len(polygons) == len(classes) == len(areas))
-
-    return [(reshape_and_close_poly(mask.polygons[0]), area, cls) for mask, area, cls in zip(masks, classes, areas) if
-            len(mask.polygons) > 0]
+    return [(reshape_and_close_poly(mask.polygons[0]), area, cls) for mask, area, cls in
+            zip(masks, classes, areas) if len(mask.polygons) > 0]
 
 
 def reshape_and_close_poly(poly):

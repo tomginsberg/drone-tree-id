@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 from typing import Tuple, Union
 
 import cv2
+import fire
 import numpy as np
 import rasterio
 import shapefile
@@ -18,20 +19,69 @@ np.random.seed(42)
 
 
 class DataTiler:
+    """
+    A data processing pipeline to turn
+    :param input_dir: str, Path to data. Can be given in the following two ways:
+
+    Option 1 (pass a base directory containing several datasets directly):
+
+    input_dir
+    |  dataset1
+    |  | "*_CHM.tif"
+    |  | "*_ortho.tif"
+    |  | segments (only required if you are creating a training dataset)
+    |      | *.[shp,shx,prj,dbf]
+    |  dataset2
+    |  | "*_CHM.tif"
+    |  | "*_ortho.tif"
+    |  | segments (only required if you are creating a training dataset)
+    |      | *.[shp,shx,prj,dbf]
+    |   ... (as many datasets as you want)
+
+    Option 2 (pass dataset directly):
+
+    dataset
+    | "*_CHM.tif"
+    | "*_ortho.tif"
+    | segments (only required if you are creating a training dataset)
+        | *.[shp,shx,prj,dbf]
+
+
+    :param output_dir: str, path to desired tile dataset output location
+
+    :param tile_width: int, pixel x-dimension of a tile. Default 640.
+    For best performance use a multiple of 32
+    Use the same value for inference datasets as training datasets
+
+    :param tile_height: int, pixel y-dimension of a tile. Default 640.
+
+    :param horizontal_overlay: int, Number of overlapping horizontal pixels between adjacent tiles. Default 320.
+
+    :param vertical_overlay: int, Number of overlapping vertical pixels between adjacent tiles. Default 320.
+
+    :param cleanup_on_init: bool, Automatically clear whatever is found at output_dir before tiling. Default False
+
+    :param compute_means: bool, Compute means of all orthos and CHM'S and print to std output. Default False
+
+    :param dataset_regex: str, If input_dir is option 1, dataset_regex can ber either a single regex or a list of many.
+    A dataset will be included in the output if it matches any of the regexes provided. Default '*'
+
+    :param create_inference_tiles: bool, If true creates a dataset ready to perform inference with the Untiler or
+    ProjectManager tools. If false creates a dataset ready to be used with the training/evaluation tools. Default true.
+    The value true will partition tiles into a single set for each dataset and will write a global file containing x,y
+    offsets of each tile to transform back to the original coordinate system.
+    For this option no 'Segmentation' file is expected or needed.
+    The value false will partition tiles into a training and testing set, and not write an offsets.json files but will
+    create a json files with classes and one with rescale segments for each tile, hence it expects to find a folder
+    named  'Segments' inside each dataset.
+    """
+
     def __init__(self, input_dir: str, output_dir: str, tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
-                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: Union[str, List[str]] = '*'):
-        """
-        :param input_dir:
-        :param output_dir:
-        :param tile_width:
-        :param tile_height:
-        :param horizontal_overlay:
-        :param vertical_overlay:
-        :param cleanup_on_init:
-        """
+                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: Union[str, List[str]] = '*',
+                 create_inference_tiles: bool = True):
         self.input_dir, self.output_dir = os.path.realpath(input_dir), os.path.realpath(output_dir)
-
+        self.create_inference_tiles = create_inference_tiles
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
 
@@ -154,18 +204,19 @@ class DataTiler:
 
     def tile_dataset(self, tile_filtering_function=lambda tile: True,
                      annotation_filtering_function=lambda anon: True,
-                     bbox_filtering_function=lambda bbox: True, train_limit: int = 80, no_train: bool = False):
+                     bbox_filtering_function=lambda bbox: True, train_limit: int = 80):
         """
 
         :param annotation_filtering_function:
-        :param no_train:
         :param bbox_filtering_function:
         :param tile_filtering_function:
         :param train_limit:
         :raises FileNotFoundError: if a single file matching *ortho.tif cannot be found in the dataset path
         """
+        no_train = self.create_inference_tiles
         if no_train:
             train_limit = 100
+
         self.build_output_dir_structure(no_train)
         for dataset_directory, dataset_name in zip(self.dataset_input_paths, self.dataset_names):
             ortho_name = glob(os.path.join(dataset_directory, '*ortho.tif'))
@@ -440,12 +491,10 @@ def ignore_black_tiles(thresh: float = .99):
 
 
 if __name__ == '__main__':
-    dt = DataTiler('/home/ubuntu/datasets', '/home/ubuntu/RGBD-Training-Data', cleanup_on_init=True,
-                   tile_width=640,
-                   tile_height=640, horizontal_overlay=320, vertical_overlay=320, dataset_regex='*')
+    dt = fire.Fire(DataTiler)
 
+    # Tiles with default filtering functions
     dt.tile_dataset(
         tile_filtering_function=ignore_black_tiles(thresh=.99),
         annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage()(an),
-        bbox_filtering_function=remove_small_bboxes(1000),
-        no_train=False)
+        bbox_filtering_function=remove_small_bboxes(1000))

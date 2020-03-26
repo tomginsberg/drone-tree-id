@@ -1,9 +1,11 @@
 import logging
 import os
 from collections import OrderedDict
-import glob
+
+import wandb
 
 import detectron2.utils.comm as comm
+from deepent.config import add_deepent_config
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
@@ -11,12 +13,9 @@ from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_resul
     print_csv_format, DatasetEvaluator
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 from detectron2.utils.logger import setup_logger
-
-import wandb
 from tools.wandb_writer import WandbWriter
 
-from deepent.config import add_deepent_config
-from deepent.data.register_datasets import register_datasets
+WANDB_PROJECT = "forest"
 
 
 class Trainer(DefaultTrainer):
@@ -125,15 +124,32 @@ def main(args):
     return trainer.train()
 
 
-if __name__ == "__main__":
-    try:
-        register_datasets('/home/ubuntu/RGBD-Training-Data')
-    except FileNotFoundError:
-        register_datasets('RGBD-Tree-Segs')
+def start_logger(args):
+    run_name = args.run_name
+    if not args.no_log:
+        if args.eval_only:
+            if run_name is None:
+                wandb.init(project=WANDB_PROJECT, name='_'.join(args.opts[-1].split('/')[-2:]) + '_eval')
+            else:
+                wandb.init(project=WANDB_PROJECT, name=run_name)
+        else:
+            if run_name is None:
+                wandb.init(project=WANDB_PROJECT)
+            else:
+                wandb.init(project=WANDB_PROJECT, name=run_name)
 
-    args = default_argument_parser().parse_args()
-    if args.eval_only:
-        wandb.init(project="forest", name='_'.join(args.opts[-1].split('/')[-2:]) + '_eval')
-    wandb.init(project="forest")
+
+if __name__ == "__main__":
+    parser = default_argument_parser()
+    parser.add_argument('data_path',
+                        help="""Path to training/evaluation data. 
+                        This dataset should be created using deepent/data/build_tiled_json_dataset.py 
+                        with flag --create_inference_tiles True""",
+                        type=str)
+    parser.add_argument('--run_name', default=None, help='Name for Wandb run.', type=str)
+    parser.add_argument('--no_log', default=False, help='Enable to turn off Wandb logging for this run', type=bool)
+
+    args = parser.parse_args()
+    start_logger(args)
 
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))

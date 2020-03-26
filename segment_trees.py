@@ -172,7 +172,7 @@ class ProjectManager:
         self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
                                     vertical_overlay=320,
                                     horizontal_overlay=320, dataset_regex=datasets.strip().split(','),
-                                    cleanup_on_init=not use_generated_tiles)
+                                    cleanup_on_init=not use_generated_tiles, create_inference_tiles=True)
 
         if not use_generated_tiles:
             self.prepare_inference_set()
@@ -188,8 +188,7 @@ class ProjectManager:
         self.data_tiler.tile_dataset(
             tile_filtering_function=ignore_black_tiles(thresh=.99),
             annotation_filtering_function=lambda an: remove_no_annotations(an) and remove_small_segment_coverage()(an),
-            bbox_filtering_function=remove_small_bboxes(1000),
-            no_train=True)
+            bbox_filtering_function=remove_small_bboxes(1000))
 
     def run_predictions(self):
         for dataset_name, dataset_path in zip(self.data_tiler.dataset_names, self.data_tiler.dataset_input_paths):
