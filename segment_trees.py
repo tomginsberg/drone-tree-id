@@ -9,87 +9,47 @@ from deepent.data.build_tiled_json_dataset import DataTiler, ignore_black_tiles,
     remove_small_segment_coverage, remove_small_bboxes
 from deepent.data.untiler import Untiler
 from detectron2.config import get_cfg
-from detectron2.engine import DefaultPredictor
 from tools.predictor import RGBDPredictor
 
-PREDICTORS = {'sequoia': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                          'model': 'output/baseline_25_01_2020/model_0054999.pth', 'predictor': DefaultPredictor},
-              'redwood': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                          'model': 'output/fuse_long/model_final.pth', 'predictor': RGBDPredictor},
-              'fuselong90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0089999.pth', 'predictor': RGBDPredictor},
-              'fuselong75': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0074999.pth', 'predictor': RGBDPredictor},
-              'fuselong60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0059999.pth', 'predictor': RGBDPredictor},
-              'fuselong45': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0044999.pth', 'predictor': RGBDPredictor},
-              'fuselong30': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0029999.pth', 'predictor': RGBDPredictor},
-              'fuselong15': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0014999.pth', 'predictor': RGBDPredictor},
-              'fuselong5': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/fuse_long/model_0004999.pth', 'predictor': RGBDPredictor},
-              'fuse90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0089999.pth', 'predictor': RGBDPredictor},
-              'fuse75': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0074999.pth', 'predictor': RGBDPredictor},
-              'fuse60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0059999.pth', 'predictor': RGBDPredictor},
-              'fuse45': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0044999.pth', 'predictor': RGBDPredictor},
-              'fuse30': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0029999.pth', 'predictor': RGBDPredictor},
-              'fuse15': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0014999.pth', 'predictor': RGBDPredictor},
-              'fuse5': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                         'model': 'output/baseline_fuse_07_02_2020/model_0004999.pth', 'predictor': RGBDPredictor},
-              'fuselateral': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                                'model': 'output/fuse_lateral/model_final.pth', 'predictor': RGBDPredictor},
-              'fuselateral60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                                'model': 'output/fuse_lateral/model_0059999.pth', 'predictor': RGBDPredictor},
-              'fuselateral45': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                                'model': 'output/fuse_lateral/model_0044999.pth', 'predictor': RGBDPredictor},
-              'fuselateral15': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                                'model': 'output/fuse_lateral/model_0014999.pth', 'predictor': RGBDPredictor},
-              'fuselateral5': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                                'model': 'output/fuse_lateral/model_0004999.pth', 'predictor': RGBDPredictor},
-              'fuse24_90': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0089999.pth', 'predictor': RGBDPredictor},
-              'fuse24_75': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0074999.pth', 'predictor': RGBDPredictor},
-              'fuse24_60': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0059999.pth', 'predictor': RGBDPredictor},
-              'fuse24_45': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0044999.pth', 'predictor': RGBDPredictor},
-              'fuse24_15': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0014999.pth', 'predictor': RGBDPredictor},
-              'fuse24_5': {'config_file': 'configs/deepent_fuse_rcnn_R_50_FPN.yaml',
-                           'model': 'output/fuse_24/model_0004999.pth', 'predictor': RGBDPredictor},
-              'rgbd40': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0039999.pth', 'predictor': RGBDPredictor},
-              'rgbd30': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0029999.pth', 'predictor': RGBDPredictor},
-              'rgbd15': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0014999.pth', 'predictor': RGBDPredictor},
-              'rgbd5': {'config_file': 'configs/deepent_rgbd_rcnn_R_50_FPN.yaml',
-                       'model': 'output/rgbd/model_0004999.pth', 'predictor': RGBDPredictor},
-              'cpts45': {'config_file': 'output/cpts/config.yaml',
-                       'model': 'output/cpts/model_0044999.pth', 'predictor': RGBDPredictor},
-              'cpts30': {'config_file': 'output/cpts/config.yaml',
-                       'model': 'output/cpts/model_0029999.pth', 'predictor': RGBDPredictor},
-              'cpts15': {'config_file': 'output/cpts/config.yaml',
-                       'model': 'output/cpts/model_0014999.pth', 'predictor': RGBDPredictor},
-              'cpts5': {'config_file': 'output/cpts/config.yaml',
-                       'model': 'output/cpts/model_0004999.pth', 'predictor': RGBDPredictor},
-              'rgb45': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                       'model': 'output/baseline_25_01_2020/model_0044999.pth', 'predictor': RGBDPredictor},
-              'rgb30': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                       'model': 'output/baseline_25_01_2020/model_0029999.pth', 'predictor': RGBDPredictor},
-              'rgb15': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                       'model': 'output/baseline_25_01_2020/model_0014999.pth', 'predictor': RGBDPredictor},
-              'rgb5': {'config_file': 'configs/deepent_rcnn_R_50_FPN.yaml',
-                       'model': 'output/baseline_25_01_2020/model_0004999.pth', 'predictor': RGBDPredictor}
+PREDICTORS = {'sequoia': {'model': 'output/baseline_25_01_2020/model_0054999.pth'},
+              'redwood': {'model': 'output/fuse_long/model_final.pth'},
+              'fuselong90': {'model': 'output/fuse_long/model_0089999.pth'},
+              'fuselong75': {'model': 'output/fuse_long/model_0074999.pth'},
+              'fuselong60': {'model': 'output/fuse_long/model_0059999.pth'},
+              'fuselong45': {'model': 'output/fuse_long/model_0044999.pth'},
+              'fuselong30': {'model': 'output/fuse_long/model_0029999.pth'},
+              'fuselong15': {'model': 'output/fuse_long/model_0014999.pth'},
+              'fuselong5': {'model': 'output/fuse_long/model_0004999.pth'},
+              'fuse90': {'model': 'output/baseline_fuse_07_02_2020/model_0089999.pth'},
+              'fuse75': {'model': 'output/baseline_fuse_07_02_2020/model_0074999.pth'},
+              'fuse60': {'model': 'output/baseline_fuse_07_02_2020/model_0059999.pth'},
+              'fuse45': {'model': 'output/baseline_fuse_07_02_2020/model_0044999.pth'},
+              'fuse30': {'model': 'output/baseline_fuse_07_02_2020/model_0029999.pth'},
+              'fuse15': {'model': 'output/baseline_fuse_07_02_2020/model_0014999.pth'},
+              'fuse5': {'model': 'output/baseline_fuse_07_02_2020/model_0004999.pth'},
+              'fuselateral': {'model': 'output/fuse_lateral/model_final.pth'},
+              'fuselateral60': {'model': 'output/fuse_lateral/model_0059999.pth'},
+              'fuselateral45': {'model': 'output/fuse_lateral/model_0044999.pth'},
+              'fuselateral15': {'model': 'output/fuse_lateral/model_0014999.pth'},
+              'fuselateral5': {'model': 'output/fuse_lateral/model_0004999.pth'},
+              'fuse24_90': {'model': 'output/fuse_24/model_0089999.pth'},
+              'fuse24_75': {'model': 'output/fuse_24/model_0074999.pth'},
+              'fuse24_60': {'model': 'output/fuse_24/model_0059999.pth'},
+              'fuse24_45': {'model': 'output/fuse_24/model_0044999.pth'},
+              'fuse24_15': {'model': 'output/fuse_24/model_0014999.pth'},
+              'fuse24_5': {'model': 'output/fuse_24/model_0004999.pth'},
+              'rgbd40': {'model': 'output/rgbd/model_0039999.pth'},
+              'rgbd30': {'model': 'output/rgbd/model_0029999.pth'},
+              'rgbd15': {'model': 'output/rgbd/model_0014999.pth'},
+              'rgbd5': {'model': 'output/rgbd/model_0004999.pth'},
+              'cpts45': {'model': 'output/cpts/model_0044999.pth'},
+              'cpts30': {'model': 'output/cpts/model_0029999.pth'},
+              'cpts15': {'model': 'output/cpts/model_0014999.pth'},
+              'cpts5': {'model': 'output/cpts/model_0004999.pth'},
+              'rgb45': {'model': 'output/baseline_25_01_2020/model_0044999.pth'},
+              'rgb30': {'model': 'output/baseline_25_01_2020/model_0029999.pth'},
+              'rgb15': {'model': 'output/baseline_25_01_2020/model_0014999.pth'},
+              'rgb5': {'model': 'output/baseline_25_01_2020/model_0004999.pth'}
               }
 
 
@@ -100,29 +60,39 @@ def run_description(predictors):
             try:
                 data = PREDICTORS[model]
                 print(
-                    f'Model {k + 1}: Name: {model} \n\t Config: {data["config_file"]}'
-                    f' \n\t Weights: {data["model"]}\n\t RGBD Model {data["predictor"] == RGBDPredictor}\n')
+                    f'Model {k + 1}: Name: {model}'
+                    f' \n\t Weights: {data["model"]}\n')
             except KeyError:
                 print(f'Model \'{model}\' not in Model Zoo!')
 
 
-def get_predictor(config_file, model, predictor, confidence):
+def get_predictor(model, confidence):
     cfg = get_cfg()
     add_deepent_config(cfg)
-    cfg.merge_from_file(os.path.realpath(config_file))
+    model_config = os.path.join(os.path.dirname(model), 'config.yaml')
+    cfg.merge_from_file(os.path.realpath(model_config))
     cfg.MODEL.WEIGHTS = os.path.realpath(model)
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = confidence
     cfg.freeze()
-
-    return predictor(cfg)
+    return RGBDPredictor(cfg)
 
 
 class ProjectManager:
     """
         Creates a manger to handle data pre-processing, predictions, and post-processing
         on a dataset of Ortho, CHM pairs.
-        :param data: File path to a folder containing multiple datasets of Ortho+CHM pairs,
-        or the direct path to a single ortho and CHM
+
+        :param data:
+        Option 1:
+        File path to a folder containing multiple datasets of Ortho+CHM pairs.
+        Option 2:
+        Direct path to a single ortho and CHM.
+        Option 3 (Advanced):
+        Direct path to inference tiles generated using deepent/data/build_tiled_dataset.py.
+        For this option, the offsets.json file must be located directly at the given location.
+        Tiles will not be deleted after run.
+
+
         :param shapefile_location: File path to where the output shapefiles should be written.
         Default drone-tree-id/shapefiles
         :param predictors: A string of predictor ensembles separated by commas. Predictors are specified by their names
@@ -152,8 +122,16 @@ class ProjectManager:
                  min_area: float = 4,
                  use_generated_tiles: bool = False,
                  retain_tiles: bool = False):
+        self.is_tile_path = len(glob(os.path.join(data, 'offsets.json'))) == 1
+
         self.path_to_raw_data = os.path.realpath(data)
-        self.multiple_datasets = len(glob(os.path.join(self.path_to_raw_data, '*.tif'))) == 0
+
+        self.multiple_datasets = len(
+            glob(os.path.join(self.path_to_raw_data, '*.png' if self.is_tile_path else '*.tif'))) == 0
+
+        assert ((not self.multiple_datasets) and self.is_tile_path,
+                'A custom tile path with multiple datasets is not currently supported')
+
         self.confidence, self.duplicate_tol, self.min_area = confidence, duplicate_tol, min_area
         if isinstance(predictors, tuple):
             predictors = ','.join(predictors)
@@ -169,20 +147,22 @@ class ProjectManager:
         else:
             self.output = os.path.realpath(shapefile_location)
 
-        self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
-                                    vertical_overlay=320,
-                                    horizontal_overlay=320, dataset_regex=datasets.strip().split(','),
-                                    cleanup_on_init=not use_generated_tiles, create_inference_tiles=True)
+        if not self.is_tile_path:
+            self.data_tiler = DataTiler(self.path_to_raw_data, os.path.join(self.path_to_raw_data, 'tmp'),
+                                        vertical_overlay=320,
+                                        horizontal_overlay=320, dataset_regex=datasets.strip().split(','),
+                                        cleanup_on_init=not use_generated_tiles, create_inference_tiles=True)
 
-        if not use_generated_tiles:
-            self.prepare_inference_set()
+            if not use_generated_tiles:
+                self.prepare_inference_set()
 
         self.run_predictions()
 
-        if use_generated_tiles:
-            retain_tiles = True
-        if not retain_tiles:
-            self.clean_tiles()
+        if not self.is_tile_path:
+            if use_generated_tiles:
+                retain_tiles = True
+            if not retain_tiles:
+                self.clean_tiles()
 
     def prepare_inference_set(self):
         self.data_tiler.tile_dataset(
@@ -191,6 +171,16 @@ class ProjectManager:
             bbox_filtering_function=remove_small_bboxes(1000))
 
     def run_predictions(self):
+        # Case 1, user has passed a path directly to tiles
+        if self.is_tile_path:
+            dataset_name = os.path.basename(self.path_to_raw_data)
+            for predictor_name, predictors in self.predictor_combos:
+                Untiler(predictors).predict_and_untile(self.path_to_raw_data,
+                                                       os.path.join(self.output, dataset_name,
+                                                                    f'{dataset_name}_{predictor_name}'),
+                                                       duplicate_tol=self.duplicate_tol, min_area=self.min_area)
+
+        # Case 2, user has passed a path to untiled data
         for dataset_name, dataset_path in zip(self.data_tiler.dataset_names, self.data_tiler.dataset_input_paths):
             if self.multiple_datasets:
                 # If a full data collection is passed the tile directory will be in the given path

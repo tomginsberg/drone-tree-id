@@ -11,7 +11,6 @@ from shapely.geometry import Polygon
 from tqdm import tqdm
 
 from detectron2.utils.visualizer import GenericMask
-from tools.predictor import RGBDPredictor
 
 DEVICE = 'cpu'
 
@@ -81,10 +80,7 @@ class Untiler:
 
         for i, predictor in enumerate(self.predictors):
             for tile_num, tile in tqdm(enumerate(tiles)):
-                if isinstance(predictor, RGBDPredictor):
-                    img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
-                else:
-                    img = cv2.imread(tile)
+                img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
                 width, height = img.shape[1], img.shape[0]
                 x_shift, y_shift = offsets[os.path.realpath(tile)]
                 predictions = predictor(img)

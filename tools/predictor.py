@@ -21,7 +21,7 @@ class RGBDPredictor:
 
     .. code-block:: python
 
-        pred = DefaultPredictor(cfg)
+        pred = RGBDPredictor(cfg)
         inputs = cv2.imread("input.jpg", cv2.IMREAD_UNCHANGED)
         outputs = pred(inputs)
     """
@@ -53,11 +53,11 @@ class RGBDPredictor:
 
         with torch.no_grad():  # https://github.com/sphinx-doc/sphinx/issues/4258
             # expect RGBD input
-            assert(original_image.shape[2]==4)
+            assert (original_image.shape[2] == 4)
             # if model does not take in depth channel, remove it
             if "RGBA" not in self.input_format:
                 # Apply pre-processing to image.
-                original_image = original_image[:,:,:3]
+                original_image = original_image[:, :, :3]
                 if "RGB" in self.input_format:
                     # whether the model expects BGR inputs or RGB
                     original_image = original_image[:, :, ::-1]

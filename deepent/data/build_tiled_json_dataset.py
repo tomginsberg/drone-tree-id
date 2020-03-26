@@ -78,17 +78,19 @@ class DataTiler:
 
     def __init__(self, input_dir: str, output_dir: str, tile_width: int = 640,
                  tile_height: int = 640, horizontal_overlay: int = 320, vertical_overlay: int = 320,
-                 cleanup_on_init: bool = False, compute_means=False, dataset_regex: Union[str, List[str]] = '*',
+                 cleanup_on_init: bool = False, compute_means: bool = False, dataset_regex: Union[str, List[str]] = '*',
                  create_inference_tiles: bool = True):
+
         self.input_dir, self.output_dir = os.path.realpath(input_dir), os.path.realpath(output_dir)
         self.create_inference_tiles = create_inference_tiles
         self.tile_width, self.tile_height = tile_width, tile_height
         self.horizontal_overlay, self.vertical_overlay = horizontal_overlay, vertical_overlay
+        self.compute_means = compute_means
 
         if len(glob(os.path.join(input_dir, '*.tif'))) > 0:
             self.dataset_input_paths = [self.input_dir]
             self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
-            print(f'Running predictions on {self.dataset_names[0]}')
+            print(f'Dataset: {self.dataset_names[0]}')
         else:
             if isinstance(dataset_regex, str):
                 dataset_regex = [dataset_regex]
@@ -97,18 +99,17 @@ class DataTiler:
             self.dataset_names = [os.path.basename(path) for path in self.dataset_input_paths]
             print('Paths:\n', self.dataset_input_paths, '\nNames:\n', self.dataset_names)
 
-            self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
-            self.classes = {}
-            self.compute_means = compute_means
-            if compute_means:
-                self.ortho_means = []
-            self.chm_means = []
+        self.classes = {}
+        self.dx, self.dy = (tile_width - horizontal_overlay), (tile_height - vertical_overlay)
+        if compute_means:
+            self.ortho_means = []
+        self.chm_means = []
 
-            if cleanup_on_init:
-                try:
-                    self.cleanup()
-                except FileNotFoundError:
-                    print('No directory to cleanup. Proceeding')
+        if cleanup_on_init:
+            try:
+                self.cleanup()
+            except FileNotFoundError:
+                print('No directory to cleanup. Proceeding')
 
     def _tile_segments(self, dataset_directory: str, ds: rasterio.DatasetReader,
                        bbox_filtering_function) -> List[List[Dict[str, any]]]:
