@@ -79,7 +79,7 @@ class Untiler:
         removed_polys, total_polys = 0, 0
 
         for i, predictor in enumerate(self.predictors):
-            for tile_num, tile in tqdm(enumerate(tiles)):
+            for tile_num, tile in enumerate(tqdm(tiles)):
                 img = cv2.imread(tile, cv2.IMREAD_UNCHANGED)
                 width, height = img.shape[1], img.shape[0]
                 x_shift, y_shift = offsets[os.path.realpath(tile)]

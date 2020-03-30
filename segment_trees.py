@@ -198,6 +198,9 @@ class ProjectManager:
             for dp in self.data_tiler.dataset_input_paths:
                 shutil.rmtree(os.path.join(dp, 'tmp'))
 
+    def __str__(self):
+        return f'Prediction complete. Output written to {self.output}'
+
 
 if __name__ == '__main__':
     fire.Fire(ProjectManager)
