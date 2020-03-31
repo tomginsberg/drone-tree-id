@@ -49,12 +49,20 @@ chmod +x setup
 
 To train the model, run the training script with appropriate flags:
 
+* `--data_path`: path to data to register
+* `--run_name`: name logs run for wandb
+* `--no_log`: only specify if no logging is needed
 * `--config-file`: the config file to load
+Any additional arguments are passed as `opts` to override the config
 * `OUTPUT_DIR`: the output path directory, for example: output/<name of experiment>
 
 For example:
 ```
-python tools/train_net.py --config-file configs/deepent_fuse_rcnn_R_50_FPN.yaml OUTPUT_DIR path/to/output/dir
+python tools/train_net.py --data_path ~/RGBD-Training-Data/ --run_name "fuse35" --config-file configs/deepent_fuse_rcnn_R_50_FPN.yaml OUTPUT_DIR output/fuse35
+```
+To run the process in the background so exiting a shell will not terminate training:
+```
+nohup <CMD> &
 ```
 
 ## Evaluation

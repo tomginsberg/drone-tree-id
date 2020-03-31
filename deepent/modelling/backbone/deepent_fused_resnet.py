@@ -25,7 +25,7 @@ class FusedResNet(Backbone):
 
     def __init__(self, stem: BasicStem, stages: List[List[ResNetBlockBase]], depth_encoder: DepthEncoder,
                  in_features: Optional[List[str]] = None, out_features: Optional[List[str]] = None,
-                 fuse_norm=""):
+                 fuse_norm = "", fuse_method = "sum"):
         """
         Args:
             stem (nn.Module): a stem module
@@ -64,9 +64,13 @@ class FusedResNet(Backbone):
             self._out_feature_channels[name] = blocks[-1].out_channels
             if name in self.in_features:
                 d_name = self.depth_features[self.in_features.index(name)]
-                fuser = SumFuser(
-                    x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
-                    y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
+                if fuse_method is "sum":
+                    fuser = SumFuser(
+                        x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
+                        y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
+                else:
+                    fuser = LateralFuser(x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
+                        y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
                 self.add_module("fuse_" + name, fuser)
                 self.fusers[name] = fuser
 
@@ -192,6 +196,7 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape):
 
     # fmt: off
     in_features = cfg.MODEL.RESNETS.IN_FEATURES
+    fuse_method = cfg.MODEL.RESNETS.FUSE_METHOD
     out_features = cfg.MODEL.RESNETS.OUT_FEATURES
     depth = cfg.MODEL.RESNETS.DEPTH
     num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
@@ -233,7 +238,7 @@ def build_deepent_fused_resnet_backbone(cfg, input_shape):
                 block.freeze()
         stages.append(blocks)
 
-    return FusedResNet(stem, stages, depth_encoder=depth_encoder, in_features=in_features, out_features=out_features)
+    return FusedResNet(stem, stages, depth_encoder=depth_encoder, in_features=in_features, out_features=out_features, fuse_method=fuse_method)
 
 
 @BACKBONE_REGISTRY.register()

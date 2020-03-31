@@ -6,6 +6,7 @@ import wandb
 
 import detectron2.utils.comm as comm
 from deepent.config import add_deepent_config
+from deepent.data.register_datasets import register_datasets
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
@@ -141,15 +142,16 @@ def start_logger(args):
 
 if __name__ == "__main__":
     parser = default_argument_parser()
-    parser.add_argument('data_path',
-                        help="""Path to training/evaluation data. 
-                        This dataset should be created using deepent/data/build_tiled_json_dataset.py 
-                        with flag --create_inference_tiles True""",
-                        type=str)
+
+    parser.add_argument('--data_path', required=True, help="""Path to training/evaluation data.
+        This dataset should be created using deepent/data/build_tiled_json_dataset.py
+        with flag --create_inference_tiles True""", type=str)
     parser.add_argument('--run_name', default=None, help='Name for Wandb run.', type=str)
-    parser.add_argument('--no_log', default=False, help='Enable to turn off Wandb logging for this run', type=bool)
+    parser.add_argument('--no_log', action="store_true", help='Enable to turn off Wandb logging for this run')
 
     args = parser.parse_args()
+
     start_logger(args)
+    register_datasets(args.data_path)
 
     launch(main, args.num_gpus, args.num_machines, args.machine_rank, args.dist_url, args=(args,))
