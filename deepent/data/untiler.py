@@ -6,6 +6,7 @@ from shutil import copyfile
 import cv2
 import numpy as np
 import shapefile
+import rasterio
 from shapely.errors import TopologicalError
 from shapely.geometry import Polygon
 from tqdm import tqdm
@@ -66,7 +67,7 @@ class Untiler:
     def __init__(self, predictors):
         self.predictors = predictors
 
-    def predict_and_untile(self, path_to_tiles: str, output: str, duplicate_tol=.75, min_area=2):
+    def predict_and_untile(self, path_to_ortho:str, path_to_tiles: str, output: str, duplicate_tol=.75, min_area=2):
         tree_id = 0
 
         with open(os.path.join(path_to_tiles, 'offsets.json'), 'r') as f:
@@ -110,6 +111,11 @@ class Untiler:
                 for poly, (tree_id, area, cls) in zip(polys, metas):
                     shp.poly([list(poly.exterior.coords)])
                     shp.record(tree_id, area, cls)
+
+        # with rasterio.open(path_to_ortho) as ortho:
+        #     f = open(output + '.prj', 'x')
+        #     f.write(ortho.crs.to_wkt())
+        #     f.close()
 
         copyfile('deepent/data/resources/generic.prj', f'{output}.prj')
 

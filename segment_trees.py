@@ -36,6 +36,7 @@ PREDICTORS = {'sequoia': {'model': 'output/baseline_25_01_2020/model_0054999.pth
               'fuse24_75': {'model': 'output/fuse_24/model_0074999.pth'},
               'fuse24_60': {'model': 'output/fuse_24/model_0059999.pth'},
               'fuse24_45': {'model': 'output/fuse_24/model_0044999.pth'},
+              'fuse24_30': {'model': 'output/fuse_24/model_0029999.pth'},
               'fuse24_15': {'model': 'output/fuse_24/model_0014999.pth'},
               'fuse24_5': {'model': 'output/fuse_24/model_0004999.pth'},
               'rgbd40': {'model': 'output/rgbd/model_0039999.pth'},
