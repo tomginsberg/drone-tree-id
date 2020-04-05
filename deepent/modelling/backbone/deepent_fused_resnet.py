@@ -14,7 +14,6 @@ from fvcore.nn import weight_init
 
 __all__ = ["build_deepent_fpn_backbone"]
 
-
 class FusedResNet(Backbone):
     """
     bijective fusing from one resnet into self
@@ -43,6 +42,7 @@ class FusedResNet(Backbone):
         depth_shapes = depth_encoder.output_shape()
         self.depth_features = list(map(lambda x: x, depth_shapes.keys()))
         assert (len(self.depth_features) == len(in_features))
+        self.fuse_method = fuse_method
 
         current_stride = self.stem.stride
         self._out_feature_strides = {"stem": current_stride}
@@ -64,15 +64,11 @@ class FusedResNet(Backbone):
             self._out_feature_channels[name] = blocks[-1].out_channels
             if name in self.in_features:
                 d_name = self.depth_features[self.in_features.index(name)]
-                if fuse_method is "sum":
-                    fuser = SumFuser(
-                        x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
-                        y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
-                else:
+                if self.fuse_method is not "sum":
                     fuser = LateralFuser(x_channels=self._out_feature_channels[name], x_stride=current_stride, y_channels=depth_shapes[d_name].channels,
                         y_stride=depth_shapes[d_name].stride, norm=fuse_norm)
-                self.add_module("fuse_" + name, fuser)
-                self.fusers[name] = fuser
+                    self.add_module("fuse_" + name, fuser)
+                    self.fusers[name] = fuser
 
         if out_features is None:
             out_features = [name]
@@ -89,8 +85,7 @@ class FusedResNet(Backbone):
                 ", ".join(children))
 
     def forward(self, x):
-        assert x.shape[
-            1] == 4, f'Input to FuseResNet should be [4, n, n] not {list(x.shape[1:])}'
+        assert x.shape[1] == 4, f'Input to FuseResNet should be [4, n, n] not {list(x.shape[1:])}'
         rgb, d = x[:, :3], x[:, 3:]
         outputs = {}
         depth_encoder_features = self.depth_encoder(d)
@@ -102,8 +97,11 @@ class FusedResNet(Backbone):
             if name in self.in_features:
                 d_name = self.depth_features[self.in_features.index(name)]
                 y = depth_encoder_features[d_name]
-                fuser = self.fusers[name]
-                x = fuser(x, y)
+                if self.fuse_method is "sum":
+                    x = x + y
+                else:
+                    fuser = self.fusers[name]
+                    x = fuser(x, y)
             if name in self._out_features:
                 outputs[name] = x
 
