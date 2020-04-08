@@ -115,7 +115,7 @@ def main(args):
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
-        res = Trainer.test(cfg, model, wandb_on=False)
+        res = Trainer.test(cfg, model, wandb_on=True)
         if comm.is_main_process():
             verify_results(cfg, res)
         return res
