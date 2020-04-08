@@ -268,6 +268,7 @@ class DataTiler:
             offsets = {}
             x_tiles, y_tiles = ceil(img_w / self.dx), ceil(img_h / self.dy)
             offsets['x_tiles'], offsets['y_tiles'] = x_tiles, y_tiles
+            offsets['ortho'] = ortho_name
 
             num_tiles = x_tiles * y_tiles
             bad_tiles = 0
