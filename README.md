@@ -25,6 +25,7 @@
 ## Environments
 
 ### AWS
+If using AWS, we recommend a EC2 g4dn.xlarge instance.
 
 Remember to load the pytorch build:
 ```
