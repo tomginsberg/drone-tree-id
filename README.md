@@ -31,17 +31,18 @@ Remember to load the pytorch build:
 ```
 source activate pytorch_p36
 ```
+### Other
+- Linux or macOS with Python ≥ 3.6
 
 ### Setup
 
 1. Clone repo:
 ```
-cd ~
 git clone https://github.com/roeetal/drone-tree-id.git
 ```
 2. run setup script:
 ```
-cd ~/drone-tree-id
+cd drone-tree-id
 chmod +x setup
 ./setup
 ```
