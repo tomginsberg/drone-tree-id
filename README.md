@@ -34,7 +34,7 @@ source activate pytorch_p36
 ### Other
 - Linux or macOS with Python ≥ 3.6
 
-### Setup
+## Setup
 
 1. Clone repo:
 ```
