@@ -11,9 +11,7 @@ from deepent.data.untiler import Untiler
 from detectron2.config import get_cfg
 from tools.predictor import RGBDPredictor
 
-PREDICTORS = {'sequoia': {'model': 'output/baseline_25_01_2020/model_0054999.pth'},
-              'redwood': {'model': 'output/fuse_long/model_final.pth'},
-              'fuselong90': {'model': 'output/fuse_long/model_0089999.pth'},
+PREDICTORS = {'fuselong90': {'model': 'output/fuse_long/model_0089999.pth'},
               'fuselong75': {'model': 'output/fuse_long/model_0074999.pth'},
               'fuselong60': {'model': 'output/fuse_long/model_0059999.pth'},
               'fuselong45': {'model': 'output/fuse_long/model_0044999.pth'},
@@ -54,6 +52,7 @@ PREDICTORS = {'sequoia': {'model': 'output/baseline_25_01_2020/model_0054999.pth
               'cpts30': {'model': 'output/cpts/model_0029999.pth'},
               'cpts15': {'model': 'output/cpts/model_0014999.pth'},
               'cpts5': {'model': 'output/cpts/model_0004999.pth'},
+              'rgb55': {'model': 'output/baseline_25_01_2020/model_0054999.pth'},
               'rgb45': {'model': 'output/baseline_25_01_2020/model_0044999.pth'},
               'rgb30': {'model': 'output/baseline_25_01_2020/model_0029999.pth'},
               'rgb15': {'model': 'output/baseline_25_01_2020/model_0014999.pth'},
@@ -124,7 +123,7 @@ class ProjectManager:
         Default False
     """
 
-    def __init__(self, data: str, shapefile_location: str = None, predictors='sequoia', datasets: str = '*',
+    def __init__(self, data: str, shapefile_location: str = None, predictors='rgb45+fuse30', datasets: str = '*',
                  confidence: float = .5,
                  duplicate_tol: float = .8,
                  min_area: float = 4,
